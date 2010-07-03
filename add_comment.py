@@ -5,6 +5,7 @@ import cgib
 cgib.enable()
 import pyexiv2
 import json
+from utils import config
 
 form = cgi.FieldStorage()
 
@@ -20,7 +21,7 @@ if not comment:
 media_id = form.getvalue('mid')
 
 # lookup the media path
-lookup_path = config.get('lookup_path')
+lookup_path = config.get('map_path')
 resource_map = json.load(open(lookup_path,'r'))
 
 path = resource_map.get(media_id)
