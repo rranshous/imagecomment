@@ -2,7 +2,7 @@
 
 import json
 from utils import config, recursive_find
-import os.path
+import os
 
 # we are going to go through the root
 # media dir recursively
@@ -35,8 +35,20 @@ id = int(last_id) + 1
 for path in media:
     if path not in reverse_lookup:
         # we need to add it to the map
+        path = os.path.abspath(path)
         lookup[id] = path
         id += 1
+
+# now we need to create symbolic links for all
+# of the media so the webserver can access it
+# on a flat dir
+flat_dir = config.get('flat_media_root')
+
+# we'll go through only placing down new links
+for id,path in lookup.iteritems():
+    place = os.path.join(flat_dir,str(id))
+    if not os.path.isfile(place):
+        os.symlink(path,place)
 
 # now that we've updated the map we need to write it 
 # back out

@@ -1,6 +1,10 @@
 from ConfigParser import ConfigParser
 import fnmatch
 import os
+from mako.template import Template
+from functools import partial
+from types import MethodType
+import json
 
 # read in the config
 config = ConfigParser()
@@ -29,3 +33,24 @@ def _recursive_find(filenames,patterns):
     for p in patterns:
         m += [x for x in fnmatch.filter(filenames,p)]
     return m       
+
+
+def read_map(map_path):
+    # we are going to read in the map as json
+    try:
+        lookup = json.load(open(map_path,'r'))
+    except IOError: # no existing file
+        lookup = {}
+    except ValueError: # can't deserialize
+        lookup = {}
+    return lookup
+
+
+def get_renderer(name):
+    root = config.get('template_root')
+    path = os.path.join(root,'%s.mako' % name)
+    template = Template(filename=path)
+    # we are going to decorate the templates
+    # render method to make the config available
+    _r = partial(template.render,config=config)
+    return _r
