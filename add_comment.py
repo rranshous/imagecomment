@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import cgi
-import cgib
-cgib.enable()
+import cgitb
+cgitb.enable()
 import pyexiv2
 import json
 from utils import config
@@ -10,7 +10,7 @@ from utils import config
 form = cgi.FieldStorage()
 
 # get the comment
-comment = form.getvalue('comment').value
+comment = form.getvalue('comment')
 
 if not comment:
     raise ValidationError('Must provide comment to add')
@@ -29,20 +29,22 @@ if not path:
     raise ValidationError('Media not found')
 
 # open the meta data for the image
-meta = pyexiv2.ImageMetaData(path)
+meta = pyexiv2.ImageMetadata(path)
 meta.read()
 
 # update the comment.
 # we are going to put double new lines in between
 # new single comments
-COMMENT_TAG = 'Exif.Image.Comments'
-if COMMENT_TAG in meta.exif_tags:
-    file_comment = meta[COMMENT_TAG]
+COMMENT_TAG = 'Exif.Image.ImageDescription'
+if COMMENT_TAG in meta.exif_keys:
+    value = meta[COMMENT_TAG].value
 else:
-    file_comment = ""
+    value = ""
 
-file_comment += "\n\n%s" % comment
-meta[COMMENT_TAG] = file_comment
+meta[COMMENT_TAG] = '%s\n\n%s' % (value,comment)
 
 # write the updated file out
 meta.write()
+
+print 'Content-Type: text/html\n\n'
+print 'it is done:',meta[COMMENT_TAG].value

@@ -16,13 +16,16 @@ file_map = read_map(config.get('map_path'))
 
 submit_template = get_renderer('comment_submit')
 image_template = get_renderer('large_image')
-
+image_comments = get_renderer('image_comments')
 BREAK = '<hr>'
 
 out = []
-for id in sorted((int(x) for x in file_map.keys())):
+keys = sorted((int(x) for x in file_map.keys()))
+keys = [str(x) for x in keys]
+for id in keys:
     out.append(BREAK)
     out.append(image_template(id=id))
+    out.append(image_comments(id=id))
     out.append(submit_template(id=id))
 
 out_path = config.get('index_path')

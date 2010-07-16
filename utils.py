@@ -5,6 +5,7 @@ from mako.template import Template
 from functools import partial
 from types import MethodType
 import json
+from pyexiv2 import ImageMetadata
 
 # read in the config
 config = ConfigParser()
@@ -45,6 +46,10 @@ def read_map(map_path):
         lookup = {}
     return lookup
 
+def get_map():
+    """ return default map as read from config """
+    map_path = config.get('map_path')
+    return read_map(map_path)
 
 def get_renderer(name):
     root = config.get('template_root')
@@ -54,3 +59,16 @@ def get_renderer(name):
     # render method to make the config available
     _r = partial(template.render,config=config)
     return _r
+
+IMAGE_COMMENT_TAG = 'Exif.Image.ImageDescription'
+def get_image_comments(path):
+    meta = ImageMetadata(path)
+    meta.read()
+    print 'image_comment_tag:',IMAGE_COMMENT_TAG
+    if IMAGE_COMMENT_TAG in meta:
+        comments = meta[IMAGE_COMMENT_TAG].value
+        comments = comments.split('\n\n')
+        comments = [x for x in comments if x]
+        return comments
+    else:
+        return []
