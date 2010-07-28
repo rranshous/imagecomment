@@ -14,20 +14,33 @@ file_map = read_map(config.get('map_path'))
 # file which has a form submit for each
 # of the pictures.
 
+# we also want to output a single page view
+# for each media
+
+render_lookup = {}
+
 submit_template = get_renderer('comment_submit')
 image_template = get_renderer('large_image')
 image_comments = get_renderer('image_comments')
 BREAK = '<hr>'
 
-out = []
-keys = sorted((int(x) for x in file_map.keys()))
+keys = sorted((int(x) for x in file_map.keys()))[:10]
 keys = [str(x) for x in keys]
 for id in keys:
+    out = []   
     out.append(BREAK)
     out.append(image_template(id=id))
     out.append(image_comments(id=id))
     out.append(submit_template(id=id))
+    render_lookup[id] = '\n'.join(out)
 
+# output our flat file
 out_path = config.get('index_path')
+out = '\n'.join([render_lookup.get(x) for x in keys])
 with open(out_path,'w') as fh:
-    fh.write('\n'.join(out))
+    fh.write(out)
+
+# now output each of the flat files
+page_out_path = config.get('pages_root')
+with open(pages_out_path,'w') as fh:
+    

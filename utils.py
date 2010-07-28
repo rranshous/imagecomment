@@ -64,11 +64,10 @@ IMAGE_COMMENT_TAG = 'Exif.Image.ImageDescription'
 def get_image_comments(path):
     meta = ImageMetadata(path)
     meta.read()
-    print 'image_comment_tag:',IMAGE_COMMENT_TAG
-    if IMAGE_COMMENT_TAG in meta:
+    try:
         comments = meta[IMAGE_COMMENT_TAG].value
         comments = comments.split('\n\n')
         comments = [x for x in comments if x]
         return comments
-    else:
+    except KeyError:
         return []
