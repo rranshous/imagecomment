@@ -5,7 +5,8 @@ from mako.template import Template
 from functools import partial
 from types import MethodType
 import json
-from pyexiv2 import ImageMetadata
+from pyexiv2 import Image
+import re
 
 # read in the config
 config = ConfigParser()
@@ -24,16 +25,18 @@ config = _config
 def recursive_find(root,patterns):
     if type(patterns) not in (tuple,list):
         patterns = [patterns]
+    patterns = [re.compile(pattern) for pattern in patterns]
     matches = []
     for root, dirnames, filenames in os.walk(root):
-        matches += _recursive_find(filenames,patterns)
-    return [os.path.join(root,m) for m in matches]
+        file_matches = _recursive_find(filenames,patterns)
+        matches += [os.path.join(root,m) for m in file_matches]
+    return matches
 
 def _recursive_find(filenames,patterns):
     m = []
     for p in patterns:
-        m += [x for x in fnmatch.filter(filenames,p)]
-    return m       
+        m += [x for x in filenames if p.match(x)]
+    return m
 
 
 def read_map(map_path):
@@ -57,17 +60,39 @@ def get_renderer(name):
     template = Template(filename=path)
     # we are going to decorate the templates
     # render method to make the config available
-    _r = partial(template.render,config=config)
+    _r = partial(template.render,
+                    config=config,
+                    get_media_page_url=get_media_page_url,
+                    get_media_url=get_media_url)
     return _r
 
 IMAGE_COMMENT_TAG = 'Exif.Image.ImageDescription'
+COMMENT_DELIMINATOR = '\n\n'
 def get_image_comments(path):
-    meta = ImageMetadata(path)
-    meta.read()
-    try:
-        comments = meta[IMAGE_COMMENT_TAG].value
-        comments = comments.split('\n\n')
-        comments = [x for x in comments if x]
-        return comments
-    except KeyError:
-        return []
+    image = Image(path)
+    image.readMetadata()
+    comments = image.getComment()
+    comments = comments.split(COMMENT_DELIMINATOR)
+    comments = [x for x in comments if x]
+    return comments
+
+def set_image_comments(path,comments,append=False):
+    if comments.__class__ in (tuple,list):
+        comments = COMMENT_DELIMINATOR.join(comments)
+    image = Image(path)
+    image.readMetadata()
+    if append:
+        existing = image.getComment()
+        delim = COMMENT_DELIMINATOR if existing else ''
+        comments = '%s%s%s' % (existing,delim,comments)
+    image.setComment(comments)
+    image.writeMetadata()
+
+
+def get_media_page_url(mid):
+    """ return url for media's page """
+    return '%s%s' % (config.get('media_pages_root'),mid)
+
+def get_media_url(mid):
+    """ returns the url for media's data """
+    return '%s%s' % (config.get('media_files_root'),mid)

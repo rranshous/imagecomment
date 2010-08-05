@@ -3,7 +3,8 @@
 # we are going to generate out some flat files
 # from the image map to submit to the script
 
-
+import os.path
+import os
 from utils import read_map, config, get_renderer
 
 # get our file map
@@ -27,7 +28,7 @@ BREAK = '<hr>'
 keys = sorted((int(x) for x in file_map.keys()))[:10]
 keys = [str(x) for x in keys]
 for id in keys:
-    out = []   
+    out = []
     out.append(BREAK)
     out.append(image_template(id=id))
     out.append(image_comments(id=id))
@@ -41,6 +42,11 @@ with open(out_path,'w') as fh:
     fh.write(out)
 
 # now output each of the flat files
-page_out_path = config.get('pages_root')
-with open(pages_out_path,'w') as fh:
-    
+root = config.get('pages_root')
+for id in keys:
+    media_dir = os.path.join(root,id)
+    if not os.path.exists(media_dir):
+        os.makedirs(media_dir)
+    index_path = os.path.join(media_dir,'index.html')
+    with file(index_path,'w') as fh:
+        fh.write(render_lookup.get(id))

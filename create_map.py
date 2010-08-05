@@ -14,7 +14,9 @@ map_path = config.get('map_path')
 assert map_path, 'wtf no map path?'
 media_extensions = config.get('media_extensions')
 assert media_extensions, 'wtf no media extensions?'
-media = recursive_find(root,media_extensions.split(','))
+# we need our media extensions to be regex patterns
+media_extensions = ['.*%s' % x for x in media_extensions.split(',')]
+media = recursive_find(root,media_extensions)
 
 # load up the existing map
 # we want keys to remain constant
@@ -47,7 +49,7 @@ flat_dir = config.get('flat_media_root')
 # we'll go through only placing down new links
 for id,path in lookup.iteritems():
     place = os.path.join(flat_dir,str(id))
-    if not os.path.isfile(place):
+    if not os.path.exists(place):
         os.symlink(path,place)
 
 # now that we've updated the map we need to write it 
