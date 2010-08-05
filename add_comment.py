@@ -28,7 +28,7 @@ path = resource_map.get(media_id)
 if not path:
     raise ValidationError('Media not found')
 
-set_image_comments(path,comment,append=True)
+set_image_comments(path,body=comment,rating=rating)
 
 # where do we point them back to? that medias page
 page_url = get_media_page_url(media_id)

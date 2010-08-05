@@ -4,7 +4,7 @@
 <%
     from utils import get_map, config, get_image_comments
     media_map = get_map()
-    comments = get_image_comments(media_map[id])
+    comments = [x.body for x in get_image_comments(media_map[id])]
 %>
 <ul>
 % for comment in comments:

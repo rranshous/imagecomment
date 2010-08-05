@@ -72,20 +72,41 @@ def get_image_comments(path):
     image = Image(path)
     image.readMetadata()
     comments = image.getComment()
+    pieces = comments.split(COMMENT_DELIMINATOR)
+    data = {}
+    for piece in pieces:
+        sub_pieces = [x.strip() for x in piece.split(':')]
+        for piece in sub_pieces:
+            if not ':' in piece:
     comments = comments.split(COMMENT_DELIMINATOR)
     comments = [x for x in comments if x]
     return comments
 
-def set_image_comments(path,comments,append=False):
-    if comments.__class__ in (tuple,list):
-        comments = COMMENT_DELIMINATOR.join(comments)
+TEMPLATES = {
+    'rating': "rating[0-100]:%s",
+    'body': "%s"
+}
+def set_image_comment(path,*args,**kwargs):
+    """
+    takes any kwarg, to use as a labeled part of the comment.
+    can also take single arg to use as body of comment
+    """
+    if args and not kwargs:
+        kwargs['body'] = '\n'.join(args)
+
     image = Image(path)
     image.readMetadata()
-    if append:
-        existing = image.getComment()
-        delim = COMMENT_DELIMINATOR if existing else ''
-        comments = '%s%s%s' % (existing,delim,comments)
-    image.setComment(comments)
+    # append is a possible kwarg
+    append = True
+    comment_parts = [COMMENT_DELIMINATOR] if existing else []
+    for k,v in kwargs.iteritems():
+        if k == 'append':
+            append = v
+        else:
+            template = TEMPLATES.get(k,"%s:%s" % (k,v))
+            comment_parts.append(template % v)
+    existing = image.getComment() or "" if append else ""
+    image.setComment(existing + "\n".join(comment_pargs))
     image.writeMetadata()
 
 
