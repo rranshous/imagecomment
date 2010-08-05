@@ -73,13 +73,32 @@ def get_image_comments(path):
     image.readMetadata()
     comments = image.getComment()
     pieces = comments.split(COMMENT_DELIMINATOR)
-    data = {}
+    comments = []
     for piece in pieces:
+        data = {}
         sub_pieces = [x.strip() for x in piece.split(':')]
-        for piece in sub_pieces:
-            if not ':' in piece:
-    comments = comments.split(COMMENT_DELIMINATOR)
-    comments = [x for x in comments if x]
+        # the first piece (if there is more than one)
+        # is the label. if there is only one it's the body
+        if len(sub_pieces) == 0:
+            continue
+        elif len(sub_pieces) == 1:
+            body = data.get('body','')
+            body += ('\n' if body else '') + sub_pieces[0]
+            data['body'] = body
+        else:
+            # first is going to be the label w/
+            # possible sub labels
+            if '[' in sub_pieces[0]:
+                label = sub_pieces[0].split('[')[0]
+                data['label'] = label
+                sub_labels = sub_pieces[0][len(label):]
+                sub_labels = sub_labels.replace('[')
+                # the last one will be blank
+                sub_labels = sub_labels.split(']')[:-1]
+                data['sub_labels'] = sub_labels
+            else:
+                data['label'] = sub_pieces[0]
+        comments.append(data)
     return comments
 
 TEMPLATES = {
