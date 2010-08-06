@@ -72,13 +72,17 @@ def get_image_comments(path):
     image = Image(path)
     image.readMetadata()
     comments = image.getComment()
+    if not comments:
+        return []
     pieces = comments.split(COMMENT_DELIMINATOR)
     comments = []
+    print 'getting:',path
     for piece in pieces:
         data = {}
-        sub_pieces = [x.strip() for x in piece.split(':')]
+        sub_pieces = [x.strip() for x in piece.split(':') if x.strip()]
         # the first piece (if there is more than one)
         # is the label. if there is only one it's the body
+
         if len(sub_pieces) == 0:
             continue
         elif len(sub_pieces) == 1:
@@ -98,6 +102,7 @@ def get_image_comments(path):
                 data['sub_labels'] = sub_labels
             else:
                 data['label'] = sub_pieces[0]
+        print 'adding:',data
         comments.append(data)
     return comments
 
@@ -117,15 +122,17 @@ def set_image_comment(path,*args,**kwargs):
     image.readMetadata()
     # append is a possible kwarg
     append = True
+    existing = image.getComment() or "" if append else ""
     comment_parts = [COMMENT_DELIMINATOR] if existing else []
     for k,v in kwargs.iteritems():
+        if v is None:
+            continue
         if k == 'append':
             append = v
         else:
             template = TEMPLATES.get(k,"%s:%s" % (k,v))
             comment_parts.append(template % v)
-    existing = image.getComment() or "" if append else ""
-    image.setComment(existing + "\n".join(comment_pargs))
+    image.setComment(existing + "\n".join(comment_parts))
     image.writeMetadata()
 
 
