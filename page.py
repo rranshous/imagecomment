@@ -7,6 +7,41 @@ import os.path
 import os
 from utils import read_map, config, get_renderer
 
+class PageWriter():
+    """
+    can write index pages, media pages
+    """
+    def __init__(self,file_map={},
+                      render_lookup={},
+                      template_lookup={}):
+        self.file_map = file_map
+        self.render_lookup = render_lookup
+        self.template_lookup = {}
+        self.output_buffer = []
+
+    def write_media_page(self,ids=None):
+        # if we didn't get an id than we re-write them all
+        if ids is None:
+            ids = self.media_map.keys()
+
+        # we want to handle a list of ids
+        if type(id) in (int,float,string):
+            ids = [ids]
+
+        for id in ids:
+            # we need to get the path to the pages
+            self.media_page_root = config.get('pages_root')
+            self.write_template('media_page',self.media_page_root)
+
+        return True
+
+    def write_template(self,template_name,out_path):
+        # we are going to load the template into memory
+        # if we have not already done so
+        template = self.template_lookup.get(template_name)
+        if not template:
+            raise Exception('Template not found: %s' % template_name)
+
 # get our file map
 file_map = read_map(config.get('map_path'))
 
