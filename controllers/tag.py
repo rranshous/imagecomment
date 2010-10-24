@@ -1,3 +1,4 @@
+import cherrypy
 class Tag:
     # for the index we want to return a Media who has
     # been passed our tag as a constraint

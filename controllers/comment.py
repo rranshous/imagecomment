@@ -1,3 +1,4 @@
+import cherrypy
 class Comment:
     @cherrypy.expose
     def index(self):

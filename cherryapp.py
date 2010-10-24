@@ -1,14 +1,17 @@
 import cherrypy
 from auth import setup_auth
 import logging as log
-from models import setup,Media,Tag,Comment
+#from auth import AuthController, require, member_of, name_is
+import models as m
+import controllers as c
+
 
 class Root:
     """ sits @ The root of the app """
-    media = Media()
-    tag = Tag()
-    comment = Comment()
-    default = Media() # other than the above options it's media
+    media = c.Media()
+    tag = c.Tag()
+    comment = c.Comment()
+    default = c.Media() # other than the above options it's media
 
     @cherrypy.expose
     def index(self):
@@ -18,8 +21,10 @@ class Root:
 
 
 if __name__ == "__main__":
-    setup()
+    # setup the db connection
+    m.setup()
+    # create our app from root
     app = cherrypy.Application(Root())
-    app.wsgiapp.pipeline.append(('repoze.who', setup_auth))
+    # get this thing hosted
     cherrypy.quickstart(app, config='cherryconfig.ini')
 

@@ -1,5 +1,6 @@
 from elixir import *
 import datetime
+from hashlib import sha1
 
 def setup():
     metadata.bind = "sqlite:///dbs/media.db"
@@ -12,6 +13,14 @@ class User(Entity):
     handle = Field(Unicode(75))
     avatar_url = Field(UnicodeText)
     password_hash = Field(UnicodeText)
+
+    def set_password(self,p):
+        self.password_hash = self.create_password_hash(p)
+
+    @classmethod
+    def create_password_hash(cls,p):
+        return sha1(p).hexdigest()
+
 
 class Tag(Entity):
     using_options(tablename='tags')

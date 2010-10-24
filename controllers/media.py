@@ -1,3 +1,5 @@
+import cherrypy
+
 class Media:
     @cherrypy.expose
     def index(self):
