@@ -6,41 +6,58 @@
 import os.path
 import os
 from utils import read_map, config, get_renderer
+from helpers import MediaLookup, TemplateLookup, PageLookup
+from helpers import PageNotFound, MediaNotFound, TemplateNotFound
 
 class PageWriter():
     """
     can write index pages, media pages
     """
-    def __init__(self,file_map={},
-                      render_lookup={},
-                      template_lookup={}):
-        self.file_map = file_map
-        self.render_lookup = render_lookup
-        self.template_lookup = {}
-        self.output_buffer = []
+    def __init__(self,file_map=None,
+                      render_lookup=None,
+                      template_lookup=None,
+                      template_root=None,
+                      pages_root=None,
+                      media_dir_template='%(id)s'):
+        self.pages_root = pages_root
+        self.media_dir_template = media_dir_template
+        self.media_lookup = media_lookup or MediaLookup()
+        # the template lookup is going to be no good w/o a lookup dir
+        self.template_lookup = template_lookup
+        if not self.template_lookup:
+            self.template_lookup = TemplateLookup(template_root)
+        self.page_lookup = page_lookup or PageLookup(self.template_lookup,
+                                                     self.media_lookup)
 
-    def write_media_page(self,ids=None):
+    def write_media_pages(self,ids=None):
         # if we didn't get an id than we re-write them all
         if ids is None:
-            ids = self.media_map.keys()
+            ids = self.media_lookup.keys()
 
         # we want to handle a list of ids
         if type(id) in (int,float,string):
             ids = [ids]
 
         for id in ids:
-            # we need to get the path to the pages
-            self.media_page_root = config.get('pages_root')
-            self.write_template('media_page',self.media_page_root)
+            media_dir = self.media_dir_template % ({'id':id})
+            pages_dir = os.path.join(self.pages_root,id)
+            index_path = os.pathjoin(pages_dir,'index.html')
+            media_data = self.media_lookup.get(id)
+            self.write_template('media_page',index_path,media_data)
 
         return True
 
-    def write_template(self,template_name,out_path):
-        # we are going to load the template into memory
-        # if we have not already done so
-        template = self.template_lookup.get(template_name)
-        if not template:
-            raise Exception('Template not found: %s' % template_name)
+    def write_template(self,template_name,out_path,data={}):
+        with open(out_path,'w') as fh:
+            try:
+                fh.write(self.page_lookup.get(template_name,data))
+            except PageNotFound:
+                raise
+            except MediaNotFound:
+                raise
+            except TemplateNotFound:
+                raise
+
 
 # get our file map
 file_map = read_map(config.get('map_path'))

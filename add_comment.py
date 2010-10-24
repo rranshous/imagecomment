@@ -5,7 +5,8 @@ import cgitb
 cgitb.enable()
 import pyexiv2
 import json
-from utils import config, set_image_comment, get_media_page_url
+from utils import config, set_image_comment, get_media_page_url, config
+from helpers import PageWriter
 
 form = cgi.FieldStorage()
 
@@ -39,5 +40,11 @@ set_image_comment(path,body=comment,rating=rating)
 
 # where do we point them back to? that medias page
 page_url = get_media_page_url(media_id)
+
+# lets update the pages associated w/ that id
+page_writer = PageWriter(template_root=config.get('template_root'),
+                         pages_root=config.get('pages_root'),
+                         media_dir_template=config.get('media_dir_template'))
+page_writer.write_media_pages(media_id)
 
 print 'Location: %s\n\n' % page_url
