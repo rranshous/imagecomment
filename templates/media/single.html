@@ -1,0 +1,15 @@
+
+% for m in media:
+    <div class="media_container">
+        <div class="img_container">
+            <img src="/media/data/${m.id}"/>
+        </div>
+        % for c in m.comments:
+            <div class="comment">
+                <div class="title">${c.title or ''}</div>
+                <div class="rating">${c.rating or ''}</div>
+                <div class="content">${c.content or ''}</div>
+            </div>
+        % endfor
+    </div>
+% endfor

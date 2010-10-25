@@ -1,0 +1,33 @@
+<html>
+<head>
+    <title>${self.page_title()}</title>
+</head>
+<body>
+
+    <div id="header">
+        ${self.page_header()}
+    </div>
+
+    <div id="flashbox">
+        % for type in ('info','warning','error'):
+            % for info in session.get(type,[]):
+                <div class="${type}">${info}</div>
+            % endfor
+            <% session[type] = [] %>
+        % endfor
+    </div>
+
+    <div id="content">
+        ${self.body()}
+    </div>
+
+</body>
+</html>
+
+
+<%def name="page_title(title='')">
+Ranshous ${title}
+</%def>
+<%def name="page_header()">
+Likeit?
+</%def>
