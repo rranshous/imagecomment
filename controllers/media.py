@@ -24,9 +24,17 @@ class Media:
                 if file_data is None:
                     add_flash('error','no file data')
 
+                # legit ratings only!
+                elif rating and not rating.isdigit() or 0 > int(rating) > 10:
+                    add_flash('error','rating must be between 0 and 5!')
+
                 else:
                     # create our new media
                     media = m.Media(title=title)
+
+                    # who uploaded this?
+                    media.user = cherrypy.request.user
+                    cherrypy.log('user: %s' % media.user)
 
                     # save file data to the drive
                     media.set_data(file_data.file.read())
@@ -38,11 +46,19 @@ class Media:
                     if comment:
                         comment = m.Comment(media=media,
                                             content=comment,
-                                            rating=rating)
+                                            rating=rating,
+                                            user=cherrypy.request.user)
                         m.session.add(comment)
 
+                    # add our tags
                     for tag_name in tags:
                         media.add_tag_by_name(tag_name)
+
+                    # add the filename
+                    if file_data.filename:
+                        ext = file_data.filename.rsplit('.',1)[-1]
+                        if ext:
+                            media.extension = ext
 
                     # add our media to the db, commit
                     m.session.add(media)
@@ -81,7 +97,8 @@ class Media:
         if not media:
             raise cherrypy.HTTPError(404)
         return cherrypy.lib.static.serve_file(media.media_path,
-                                              media.type)
+                                              content_type=media.type,
+                                              name=media.get_safe_title())
 
     @cherrypy.expose
     def default(self,*args,**kwargs):
@@ -106,11 +123,10 @@ class Media:
 
         cherrypy.log('media: %s' % media)
 
-        # if there are two args and the second arg is data,
-        # send back the data (even if it matched something)
-        if len(args) == 2 and str(args[1]).lower() == 'data':
-            return self.data(media[0].id)
-
+        # whaaa, no media?
+        if not media:
+            cherrypy.log('flashing')
+            add_flash('error','media appears to be awol!')
 
         return render('/media/single.html',media=media)
 

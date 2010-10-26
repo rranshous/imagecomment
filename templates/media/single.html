@@ -1,13 +1,40 @@
 
+<%inherit file="/base.html"/>
+
+<%def name="page_title()">
+Results!
+</%def>
+
+<%def name="page_header()">
+hope you like it
+</%def>
+
+<style>
+    .media_container .media { max-width: 800px; max-height: 800px;
+                              float: left; }
+    .media_container .title { font-size: 1.1em }
+</style>
+
 % for m in media:
-    <div class="media_container">
-        <div class="img_container">
-            <img src="/media/data/${m.id}"/>
+    <div class="media_block">
+        <div class="media_container">
+            % if m.extension.lower() in ('gif','jpeg','jpg','png'):
+                <img class="media" src="/media/data/${m.id}"/>
+            % else:
+                media extension unknown!
+            % endif
+        </div>
+        <div class="title">
+            ${m.title}
+        </div>
+        <div class="credits">
+            via ${m.user.handle}
         </div>
         % for c in m.comments:
             <div class="comment">
+                <div class="user">${c.user.handle or ''}</div>
                 <div class="title">${c.title or ''}</div>
-                <div class="rating">${c.rating or ''}</div>
+                <div class="rating">${(c.rating or 0) * '&hearts;'}</div>
                 <div class="content">${c.content or ''}</div>
             </div>
         % endfor

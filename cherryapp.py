@@ -1,7 +1,6 @@
 import cherrypy
-from auth import setup_auth, set_user
+from auth import set_user
 import logging as log
-#from auth import AuthController, require, member_of, name_is
 import models as m
 import controllers as c
 

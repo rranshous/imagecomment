@@ -1,6 +1,15 @@
 <html>
 <head>
-    <title>${self.page_title()}</title>
+    <title>Ranshous ${self.page_title()}</title>
+    <style>
+        body { margin: 0; padding: 0; font-size: 22px;}
+        #header { color: #cccccc; background-color: black;
+                  padding: 2px 4px; }
+        #flashbox { background: black; }
+        #flashbox .info { color: blue; }
+        #flashbox .warning { color: yellow; }
+        #flashbox .error { color: red; }
+    </style>
 </head>
 <body>
 
@@ -26,7 +35,7 @@
 
 
 <%def name="page_title(title='')">
-Ranshous ${title}
+Like a fun fact on a boring night
 </%def>
 <%def name="page_header()">
 Likeit?

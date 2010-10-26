@@ -79,7 +79,8 @@ class Media(Entity):
 
     title = Field(Unicode(100))
     size = Field(Float)
-    type = Field(Unicode(10))
+    type = Field(Unicode(80))
+    extension = Field(Unicode(10))
     media_path = Field(UnicodeText)
     created_at = Field(DateTime, default=datetime.datetime.now)
 
@@ -113,6 +114,11 @@ class Media(Entity):
             session.add(tag)
         if tag not in self.tags:
             self.tags.append(tag)
+
+    def get_safe_title(self):
+        title = self.title or self.id
+        title.replace(' ','_').replace('\n','_').strip()
+        return '%s.%s' % (title,self.extension)
 
     def __repr__(self):
         return '<Media "%s" %s">' % (self.title,self.type)
