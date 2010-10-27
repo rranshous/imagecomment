@@ -1,9 +1,39 @@
 <%inherit file="/base.html"/>
 
-<form method="POST" enctype="multipart/form-data" action="/media/create/">
-    <label>title: <input type="text" name="title"/></label><br>
-    <label>comment: <input type="text" name="comment"/></label><br>
-    <label>rating: <input type="string" name="rating"/></label><br>
-    <label>file: <input type="file" name="file_data"/></label><br>
-    <input type="submit" value="Create"/><br>
+<style>
+    #create_media span {
+        width: 135px;
+        display:block;
+        float: left;
+    }
+    #create_media select, #create_media input {
+        width: 185px;
+    }
+</style>
+
+<form id="create_media"
+      method="POST"
+      enctype="multipart/form-data"
+      action="/media/create/">
+    <label>
+        <span>title:</span> <input type="text" name="title"/>
+    </label><br>
+    <label>
+        <span>comment:</span><input type="text" name="comment"/>
+    </label><br>
+    <label>
+        <span>rating:</span>
+        <select name="rating">
+            <option value="0"></option>
+            <option value="1">${1 * '&hearts;'}</option>
+            <option value="2">${2 * '&hearts;'}</option>
+            <option value="3">${3 * '&hearts;'}</option>
+            <option value="4">${4 * '&hearts;'}</option>
+            <option value="5">${5 * '&hearts;'}</option>
+        </select>
+    </label><br>
+    <label>
+        <span>file:</span><input type="file" name="file_data"/>
+    </label><br><br>
+    <input type="submit" value="Create" name="action"/><br>
 </form>

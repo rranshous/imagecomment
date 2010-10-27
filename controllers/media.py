@@ -14,18 +14,22 @@ class Media:
 
     @cherrypy.expose
     def create(self,title=None,file_data=None,comment=None,rating=None,
-                    tags=[]):
+                    tags=[],action=None):
         """ creates new media, metadata and media data submitted """
         # check and see if they are creating new media
 
         try:
-            if title:
+            if action:
+                # must have a title!
+                if not title:
+                    add_flash('error','title required!')
+
                 # can't create a media entry w/o data!
-                if file_data is None:
-                    add_flash('error','no file data')
+                elif not file_data.filename:
+                    add_flash('error','must upload file!')
 
                 # legit ratings only!
-                elif rating and not rating.isdigit() or 0 > int(rating) > 10:
+                elif rating and not rating.isdigit() or 0> int(rating) >5:
                     add_flash('error','rating must be between 0 and 5!')
 
                 else:
@@ -36,11 +40,15 @@ class Media:
                     media.user = cherrypy.request.user
                     cherrypy.log('user: %s' % media.user)
 
-                    # save file data to the drive
-                    media.set_data(file_data.file.read())
 
                     # set the extension as the type
                     media.type = file_data.type
+
+                    # add the filename
+                    if file_data.filename:
+                        ext = file_data.filename.rsplit('.',1)[-1]
+                        if ext:
+                            media.extension = ext
 
                     # if there is a comment from the author add it
                     if comment:
@@ -50,15 +58,12 @@ class Media:
                                             user=cherrypy.request.user)
                         m.session.add(comment)
 
+                    # save file data to the drive
+                    media.set_data(file_data.file.read())
+
                     # add our tags
                     for tag_name in tags:
                         media.add_tag_by_name(tag_name)
-
-                    # add the filename
-                    if file_data.filename:
-                        ext = file_data.filename.rsplit('.',1)[-1]
-                        if ext:
-                            media.extension = ext
 
                     # add our media to the db, commit
                     m.session.add(media)
@@ -90,15 +95,18 @@ class Media:
         return 'delete'
 
     @cherrypy.expose
-    def data(self,id):
+    def data(self,id,filename=None):
         """ returns the data for the media, only if your authed
             to view the media """
         media = m.Media.get(id)
         if not media:
             raise cherrypy.HTTPError(404)
+        if not filename:
+            filename = media.get_safe_title()
+        cherrypy.log('media_path: %s'%media.media_path)
         return cherrypy.lib.static.serve_file(media.media_path,
                                               content_type=media.type,
-                                              name=media.get_safe_title())
+                                              name = filename)
 
     @cherrypy.expose
     def default(self,*args,**kwargs):

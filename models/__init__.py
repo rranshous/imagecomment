@@ -4,6 +4,7 @@ import cherrypy
 from hashlib import sha1
 from tempfile import NamedTemporaryFile
 import models as m
+import os
 
 def reset_session():
     try:
@@ -93,10 +94,16 @@ class Media(Entity):
         self.size = len(data)
         cherrypy.log('setting data: %s' % len(data))
         if not self.media_path:
-            self.media_path = self.get_random_path()
+            t = NamedTemporaryFile(delete=False,
+                                   dir=cherrypy.config.get('media_root'),
+                                   suffix='.%s'%self.extension)
+            fh = t.file
+            self.media_path = os.path.abspath(t.name)
+        else:
+            fh = file(self.media_path,'wb')
         cherrypy.log('adding_data: %s' % self.media_path)
-        with file(self.media_path,'wb') as fh:
-            fh.write(data)
+        fh.write(data)
+        fh.close()
         m.session.commit()
         return True
 
