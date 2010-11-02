@@ -1,4 +1,4 @@
-from repoze.who.config import make_middleware_with_config
+#from repoze.who.config import make_middleware_with_config
 from elixir import metadata
 #from config import config
 import models as m

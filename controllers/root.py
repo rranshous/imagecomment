@@ -1,8 +1,8 @@
 import cherrypy
 from media import Media
-from tag import Tag
-from user import User
-from comment import Comment
+from tags import Tag
+from users import User
+from comments import Comment
 from helpers import render
 
 class Root:
