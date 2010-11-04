@@ -1,5 +1,4 @@
-
-<%inherit file="/base.html"/>
+<%inherit file="/media/base.html"/>
 
 <%def name="page_title()">
 Results!
@@ -9,33 +8,49 @@ Results!
 hope you like it
 </%def>
 
+<%def name="page_name()">
+% if not isinstance(media,list):
+    ${media.title} by ${media.user.handle}
+% elif len(media):
+    ${media[0].title}
+    <span style="font-size:.6em;">
+        by ${media[0].user.handle}
+    </span>
+% else:
+    ${search}
+% endif
+</%def>
+
 <style>
-    .media_container .media { max-width: 800px; max-height: 800px;
-                              float: left; }
-    .media_container .title { font-size: 1.1em }
+    .media_container .media { }
+    .media_container img { border: 3px solid black; }
+    .comment { font-size: .8em; }
+    .comment .rating { font-size: .5em; }
+    .comment .handle { font-size: .8em; }
 </style>
 
 % for m in media:
     <div class="media_block">
         <div class="media_container">
             % if m.extension.lower() in ('gif','jpeg','jpg','png'):
-                <img class="media" src="/media/data/${m.id}"/>
+                <a href="/media/data/${m.id}">
+                    <img class="media"
+                         title="${m.title} by ${m.user.handle}"
+                         src="/media/data/${m.id}?size=600"/>
+                </a>
             % else:
                 media extension unknown!
             % endif
         </div>
-        <div class="title">
-            ${m.title}
-        </div>
-        <div class="credits">
-            via ${m.user.handle}
-        </div>
         % for c in m.comments:
-            <div class="comment">
-                <div class="user">${c.user.handle or ''}</div>
-                <div class="title">${c.title or ''}</div>
-                <div class="rating">${(c.rating or 0) * '&hearts;'}</div>
-                <div class="content">${c.content or ''}</div>
+            <div class="comment" title="${c.title or ''}">
+                ${c.content or ''}
+                <span class="rating">
+                    ${(c.rating or 0) * '&hearts;'}
+                </span>
+                <span class="handle">
+                    ${c.user.handle or ''}
+                </span>
             </div>
         % endfor
     </div>

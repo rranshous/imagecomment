@@ -13,6 +13,13 @@ have a look @ our wares
 </%def>
 
 <style>
+    .media_container .media {
+        margin: 10px;
+        float: left;
+    }
+</style>
+
+<style>
     .links {
         margin-bottom: 10px;
     }
@@ -25,14 +32,11 @@ have a look @ our wares
 <div class="media_container">
     % for media in frontpage_media:
      
-    <div class="media">
-        <div>
-            <a href="/media/${media.id}/">
-                <img src="/media/data/${media.id}?size=350"
-                     title="${media.title} by ${media.user.handle}"/>
-            </a>
-        </div>
-    </div>
+    <a href="/media/${media.id}/">
+        <img class="media"
+             src="/media/data/${media.id}?size=350"
+             title="${media.title} by ${media.user.handle}"/>
+    </a>
 
     % endfor
 </div>

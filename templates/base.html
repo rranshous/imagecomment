@@ -6,7 +6,12 @@
                background-color: #6c6521; color: #2f2b08; }
         #header { color: #cccccc; background-color: #3a350a;
                   padding: 2px 4px; }
-        #flashbox { }
+        #flashbox {
+            display: inline;
+            -moz-box-shadow: 3px 0 #000;
+            -webkit-box-shadow: 3px 0 #000;
+            box-shadow: 0 1px  #000;
+        }
         #flashbox .info { color: blue; }
         #flashbox .warning { color: yellow; }
         #flashbox .error { color: red; }
@@ -17,8 +22,9 @@
             color: #442b08;
         }
         #link_box {
-
+            padding-left: 20px;
         }
+        #link_box a { text-decoration: none }
     </style>
 </head>
 <body>
@@ -28,6 +34,7 @@
     </div>
 
     <div id="link_box">
+        uR@: 
         <a href="${request.path_info.rsplit('/',1)[0]}/">
             ${self.section_name()}
         </a>

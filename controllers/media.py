@@ -145,7 +145,8 @@ class Media:
             cherrypy.log('flashing')
             add_flash('error','media appears to be awol!')
 
-        return render('/media/single.html',media=media)
+        return render('/media/single.html',media=media,
+                                           search=' '.join(args))
 
     def check_match(self,*args,**kwargs):
         """ arg could be the id or title of a media,
