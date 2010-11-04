@@ -1,4 +1,4 @@
-<%inherit file="/base.html"/>
+<%inherit file="/media/base.html"/>
 
 <%def name="page_title()">
 media4u
@@ -8,4 +8,31 @@ media4u
 Looking for something ?
 </%def>
 
-<a href="./create">create</a>
+<%def name="page_name()">
+have a look @ our wares
+</%def>
+
+<style>
+    .links {
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="links">
+    <a href="./create">create</a>
+</div>
+
+<div class="media_container">
+    % for media in frontpage_media:
+     
+    <div class="media">
+        <div>
+            <a href="/media/${media.id}/">
+                <img src="/media/data/${media.id}?size=350"
+                     title="${media.title} by ${media.user.handle}"/>
+            </a>
+        </div>
+    </div>
+
+    % endfor
+</div>

@@ -10,7 +10,11 @@ class Media:
     def index(self,search=None):
         """ returns page w/ media embedded + comments """
 
-        return render('/media/index.html')
+        frontpage_media = m.Media.query. \
+                                    order_by(m.Media.created_at.desc()). \
+                                    limit(10).all()
+
+        return render('/media/index.html',frontpage_media=frontpage_media)
 
     @cherrypy.expose
     def create(self,title=None,file_data=None,comment=None,rating=None,
@@ -95,7 +99,7 @@ class Media:
         return 'delete'
 
     @cherrypy.expose
-    def data(self,id,filename=None):
+    def data(self,id,filename=None,size=None):
         """ returns the data for the media, only if your authed
             to view the media """
         media = m.Media.get(id)
@@ -104,7 +108,12 @@ class Media:
         if not filename:
             filename = media.get_safe_title()
         cherrypy.log('media_path: %s'%media.media_path)
-        return cherrypy.lib.static.serve_file(media.media_path,
+        if size:
+            path = media.create_thumbnail(size)
+        else:
+            path = media.media_path
+        cherrypy.log('path: %s' % path)
+        return cherrypy.lib.static.serve_file(path,
                                               content_type=media.type,
                                               name = filename)
 

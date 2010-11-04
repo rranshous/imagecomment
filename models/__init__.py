@@ -5,6 +5,7 @@ from hashlib import sha1
 from tempfile import NamedTemporaryFile
 import models as m
 import os
+from subprocess import call
 
 def reset_session():
     try:
@@ -52,14 +53,25 @@ class Tag(Entity):
     using_options(tablename='tags')
 
     name = Field(Unicode(100))
-    description = Field(UnicodeText)
     created_at = Field(DateTime, default=datetime.datetime.now)
 
     media = ManyToMany('Media')
     relates_to = ManyToMany('Tag')
+    comments = OneToMany('Comment')
 
     def __repr__(self):
         return '<Tag "%s">' % self.name
+
+class Album(Entity):
+    using_options(tablename='albums')
+
+    name = Field(Unicode(100))
+    created_at = Field(DateTime, default=datetime.datetime.now)
+
+    comments = OneToMany('Comment')
+    media = ManyToMany('Media')
+    relates_to = ManyToMany('Album')
+
 
 class Comment(Entity):
     using_options(tablename='comments')
@@ -71,6 +83,8 @@ class Comment(Entity):
 
     media = ManyToOne('Media')
     user = ManyToOne('User')
+    tag = ManyToOne('Tag')
+    album = ManyToOne('Album')
 
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
@@ -88,6 +102,7 @@ class Media(Entity):
     comments = OneToMany('Comment')
     tags = ManyToMany('Tag')
     user = ManyToOne('User')
+    albums = ManyToMany('Album')
 
     def set_data(self,data):
         # we are going to update our data file
@@ -106,6 +121,29 @@ class Media(Entity):
         fh.close()
         m.session.commit()
         return True
+
+    def create_thumbnail(self,w,h='',overwrite=False):
+        """ creats a thumbnail of the image @ the given size,
+            writes the thumbnail to the drive w/ size as
+            the prefix """
+        w,h = map(str,(w,h))
+        if not h:
+            h = w
+        if 'x' in w:
+            size = w
+        else:
+            size = '%sx%s' % (w,h)
+        file_name = os.path.basename(self.media_path)
+        file_dir = os.path.dirname(self.media_path)
+        out_path = os.path.join(file_dir,'%s_%s' % (size,file_name))
+        if os.path.exists(out_path) and not overwrite:
+            return out_path
+
+        cmd = ['convert','-thumbnail',size,self.media_path,out_path]
+        cherrypy.log('cmd: %s' % cmd)
+        r = call(cmd) # TODO check return code
+        cherrypy.log('out path: %s' % out_path)
+        return out_path
 
     @classmethod
     def get_random_path(cls):

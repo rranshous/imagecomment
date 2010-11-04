@@ -1,5 +1,5 @@
 syntax: glob
 *.pyc
 *.swp
-images/*
-public_media/*
+*.swo
+media/*

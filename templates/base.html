@@ -16,12 +16,25 @@
         a, a:hover, a:visited, a:active {
             color: #442b08;
         }
+        #link_box {
+
+        }
     </style>
 </head>
 <body>
 
     <div id="header">
         ${self.page_header()}
+    </div>
+
+    <div id="link_box">
+        <a href="${request.path_info.rsplit('/',1)[0]}/">
+            ${self.section_name()}
+        </a>
+        &raquo;
+        <a href="">
+            ${self.page_name()}
+        </a>
     </div>
 
     <div id="flashbox">
@@ -46,4 +59,9 @@ Like a fun fact on a boring night
 </%def>
 <%def name="page_header()">
 Likeit?
+</%def>
+<%def name="page_name()">
+</%def>
+<%def name="section_name()">
+THE BEGINING
 </%def>
