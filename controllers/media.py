@@ -18,12 +18,13 @@ class Media:
 
     @cherrypy.expose
     def create(self,title=None,file_data=None,comment=None,rating=None,
-                    tags=[],action=None):
+                    tags=[],album_id=None,album_name=None,action=None):
         """ creates new media, metadata and media data submitted """
         # check and see if they are creating new media
 
         try:
             if action:
+
                 # must have a title!
                 if not title:
                     add_flash('error','title required!')
@@ -43,7 +44,6 @@ class Media:
                     # who uploaded this?
                     media.user = cherrypy.request.user
                     cherrypy.log('user: %s' % media.user)
-
 
                     # set the extension as the type
                     media.type = file_data.type
@@ -69,6 +69,17 @@ class Media:
                     for tag_name in tags:
                         media.add_tag_by_name(tag_name)
 
+                    # the album can either be an id or a
+                    # new name
+                    if album_id or album_name:
+                        if album_id:
+                            album = m.Album.get(album_id)
+                        else:
+                            album = m.Album(name=album_name,
+                                            user=cherrypy.request.user)
+                            m.session.add(album)
+                        media.albums.append(album)
+
                     # add our media to the db, commit
                     m.session.add(media)
                     m.session.commit()
@@ -83,7 +94,6 @@ class Media:
             raise
             # woops, alert of error
             add_flash('error','%s' % ex)
-
 
         return render('/media/create.html')
 

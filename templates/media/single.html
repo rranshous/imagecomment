@@ -9,12 +9,16 @@ hope you like it
 </%def>
 
 <%def name="page_name()">
-% if not isinstance(media,list):
-    ${media.title} by ${media.user.handle}
-% elif len(media):
+% if media:
     ${media[0].title}
     <span style="font-size:.6em;">
         by ${media[0].user.handle}
+        % if media[0].albums:
+            (${', '.join([a.name for a in media[0].albums])})
+        % endif
+        % if media[0].tags:
+            [${', '.join([t.name for t in media[0].tags])}]
+        % endif
     </span>
 % else:
     ${search}
@@ -22,11 +26,13 @@ hope you like it
 </%def>
 
 <style>
+    .media_container { margin-bottom: 20px; }
     .media_container .media { }
-    .media_container img { border: 3px solid black; }
+    .media_container img { border: 1px solid black; }
     .comment { font-size: .8em; }
     .comment .rating { font-size: .5em; }
     .comment .handle { font-size: .8em; }
+    form.add_comment { margin-top: 20px; }
 </style>
 
 % for m in media:
@@ -53,14 +59,15 @@ hope you like it
                 </span>
             </div>
         % endfor
-        <form method="POST" action="/comment/create/">
-            add comment: <input type="text" name="comment"/>
+        <form class="add_comment" method="POST" action="/comment/create/">
+            add comment: <input type="text" name="content"/>
             <select name="rating">
                 % for i in xrange(6):
                     <option value="${i}">${i * '&hearts;'}</option>
                 % endfor
             </select>
-            <button type="submit" value="&cent;" name="action"/>
+            <input type="hidden" value="${m.id}" name="media_id"/>
+            <input type="submit" value="2&cent;" name="action"/>
         </form>
     </div>
 % endfor

@@ -26,6 +26,15 @@ git'r'uploaded
         <span>comment:</span><input type="text" name="comment"/>
     </label><br>
     <label>
+        <span>album:</span>
+        <input type="text" name="album_name"/> or
+        <select name="album_id">
+        % for album in request.user.albums:
+            <option value="${album.id}">${album.name}</option>     
+        % endfor
+        </select>
+    </label><br>
+    <label>
         <span>rating:</span>
         <select name="rating">
             % for i in xrange(6):

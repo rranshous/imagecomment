@@ -49,6 +49,7 @@ class User(BaseEntity):
 
     media = OneToMany('Media')
     comments = OneToMany('Comment')
+    albums = OneToMany('Album')
 
     def set_password(self,p):
         """ sets users password hash based on passed string """
@@ -86,6 +87,7 @@ class Album(BaseEntity):
     comments = OneToMany('Comment')
     media = ManyToMany('Media')
     tags = ManyToMany('Tag')
+    owner = ManyToOne('User')
     relates_to = ManyToMany('Album')
 
     add_tag_by_name = add_tag_by_name
