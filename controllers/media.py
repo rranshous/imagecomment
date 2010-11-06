@@ -34,7 +34,7 @@ class Media:
 
                 # legit ratings only!
                 elif rating and not rating.isdigit() or 0> int(rating) >5:
-                    add_flash('error','rating must be between 0 and 5!')
+                    add_flash('error','invalid rating!')
 
                 else:
                     # create our new media

@@ -7,6 +7,15 @@ import models as m
 import os
 from subprocess import call
 
+## helper functions ##
+def add_tag_by_name(self,name):
+    tag = Tag.get_by(name=name)
+    if not tag:
+        tag = Tag(name=name)
+        session.add(tag)
+    if tag not in self.tags:
+        self.tags.append(tag)
+
 def reset_session():
     try:
         session.rollback()
@@ -21,7 +30,12 @@ def setup():
     metadata.bind.echo = False
     setup_all()
 
-class User(Entity):
+## end helper functions ##
+
+# for now
+BaseEntity = Entity
+
+class User(BaseEntity):
     using_options(tablename='users')
 
     # users "name"
@@ -49,7 +63,7 @@ class User(Entity):
         return sha1(p).hexdigest()
 
 
-class Tag(Entity):
+class Tag(BaseEntity):
     using_options(tablename='tags')
 
     name = Field(Unicode(100))
@@ -57,12 +71,13 @@ class Tag(Entity):
 
     media = ManyToMany('Media')
     relates_to = ManyToMany('Tag')
-    comments = OneToMany('Comment')
+    comments = ManyToMany('Comment')
+    albums = ManyToMany('Album')
 
     def __repr__(self):
         return '<Tag "%s">' % self.name
 
-class Album(Entity):
+class Album(BaseEntity):
     using_options(tablename='albums')
 
     name = Field(Unicode(100))
@@ -70,10 +85,15 @@ class Album(Entity):
 
     comments = OneToMany('Comment')
     media = ManyToMany('Media')
+    tags = ManyToMany('Tag')
     relates_to = ManyToMany('Album')
 
+    add_tag_by_name = add_tag_by_name
 
-class Comment(Entity):
+    def __repr__(self):
+        return '<Album "%s">' % self.name
+
+class Comment(BaseEntity):
     using_options(tablename='comments')
 
     title = Field(Unicode(100))
@@ -83,13 +103,15 @@ class Comment(Entity):
 
     media = ManyToOne('Media')
     user = ManyToOne('User')
-    tag = ManyToOne('Tag')
+    tags = ManyToMany('Tag')
     album = ManyToOne('Album')
+
+    add_tag_by_name = add_tag_by_name
 
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(Entity):
+class Media(BaseEntity):
     using_options(tablename='media')
 
     title = Field(Unicode(100))
@@ -103,6 +125,8 @@ class Media(Entity):
     tags = ManyToMany('Tag')
     user = ManyToOne('User')
     albums = ManyToMany('Album')
+
+    add_tag_by_name = add_tag_by_name
 
     def set_data(self,data):
         # we are going to update our data file
@@ -167,3 +191,6 @@ class Media(Entity):
 
     def __repr__(self):
         return '<Media "%s" %s">' % (self.title,self.type)
+
+
+

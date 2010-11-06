@@ -53,5 +53,14 @@ hope you like it
                 </span>
             </div>
         % endfor
+        <form method="POST" action="/comment/create/">
+            add comment: <input type="text" name="comment"/>
+            <select name="rating">
+                % for i in xrange(6):
+                    <option value="${i}">${i * '&hearts;'}</option>
+                % endfor
+            </select>
+            <button type="submit" value="&cent;" name="action"/>
+        </form>
     </div>
 % endfor

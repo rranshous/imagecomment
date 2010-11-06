@@ -1,4 +1,8 @@
-<%inherit file="/base.html"/>
+<%inherit file="/media/base.html"/>
+
+<%def name="page_name()">
+git'r'uploaded
+</%def>
 
 <style>
     #create_media span {
@@ -24,12 +28,9 @@
     <label>
         <span>rating:</span>
         <select name="rating">
-            <option value="0"></option>
-            <option value="1">${1 * '&hearts;'}</option>
-            <option value="2">${2 * '&hearts;'}</option>
-            <option value="3">${3 * '&hearts;'}</option>
-            <option value="4">${4 * '&hearts;'}</option>
-            <option value="5">${5 * '&hearts;'}</option>
+            % for i in xrange(6):
+                <option value="${i}">${i * '&hearts;'}</option>
+            % endfor
         </select>
     </label><br>
     <label>
