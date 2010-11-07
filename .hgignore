@@ -2,4 +2,7 @@ syntax: glob
 *.pyc
 *.swp
 *.swo
-media/*
+*.jpg
+*.JPG
+*.PNG
+*.png
