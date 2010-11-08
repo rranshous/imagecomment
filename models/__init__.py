@@ -151,24 +151,28 @@ class Media(BaseEntity):
         """ creats a thumbnail of the image @ the given size,
             writes the thumbnail to the drive w/ size as
             the prefix """
-        w,h = map(str,(w,h))
-        if not h:
-            h = w
-        if 'x' in w:
-            size = w
-        else:
-            size = '%sx%s' % (w,h)
-        file_name = os.path.basename(self.media_path)
-        file_dir = os.path.dirname(self.media_path)
-        out_path = os.path.join(file_dir,'%s_%s' % (size,file_name))
-        if os.path.exists(out_path) and not overwrite:
-            return out_path
 
-        cmd = ['convert','-thumbnail',size,self.media_path,out_path]
-        cherrypy.log('cmd: %s' % cmd)
-        r = call(cmd) # TODO check return code
-        cherrypy.log('out path: %s' % out_path)
-        return out_path
+        if self.is_image():
+            w,h = map(str,(w,h))
+            if not h:
+                h = w
+            if 'x' in w:
+                size = w
+            else:
+                size = '%sx%s' % (w,h)
+            file_name = os.path.basename(self.media_path)
+            file_dir = os.path.dirname(self.media_path)
+            out_path = os.path.join(file_dir,'%s_%s' % (size,file_name))
+            if os.path.exists(out_path) and not overwrite:
+                return out_path
+
+            cmd = ['convert','-thumbnail',size,self.media_path,out_path]
+            cherrypy.log('cmd: %s' % cmd)
+            r = call(cmd) # TODO check return code
+            cherrypy.log('out path: %s' % out_path)
+            return out_path
+        if self.is_video():
+            return None
 
     @classmethod
     def get_random_path(cls):
@@ -189,6 +193,20 @@ class Media(BaseEntity):
         title = self.title or self.id
         title.replace(' ','_').replace('\n','_').strip()
         return '%s.%s' % (title,self.extension)
+
+    def is_image(self):
+        image_extensions = ('jpg','png','gif','jpeg')
+        for e in image_extensions:
+            if self.extension.lower() == e:
+                return True
+        return False
+
+    def is_video(self):
+        video_extensions = ('avi','mpeg','mpg','mp4','mov')
+        for e in video_extensions:
+            if self.extension.lower() == e:
+                return True
+        return False
 
     def __repr__(self):
         return '<Media "%s" %s">' % (self.title,self.type)
