@@ -24,20 +24,23 @@ class Media:
 
         try:
             if action:
-
                 # must have a title!
                 if not title:
-                    add_flash('error','title required!')
+                    raise e.ValidationException('error','title required!')
 
                 # can't create a media entry w/o data!
-                elif not file_data.filename:
-                    add_flash('error','must upload file!')
+                elif not file_data:
+                    raise e.ValidationException('error','must upload file!')
 
                 # legit ratings only!
                 elif rating and not rating.isdigit() or 0> int(rating) >5:
-                    add_flash('error','invalid rating!')
+                    raise e.ValidationException('error','invalid rating!')
 
-                else:
+                # we might be getting multiple files
+                if not isinstance(file_data,list):
+                    file_data = [file_data]
+
+                for fd in file_data:
                     # create our new media
                     media = m.Media(title=title)
 
@@ -46,49 +49,54 @@ class Media:
                     cherrypy.log('user: %s' % media.user)
 
                     # set the extension as the type
-                    media.type = file_data.type
+                    media.type = fd.type
 
                     # add the filename
-                    if file_data.filename:
-                        ext = file_data.filename.rsplit('.',1)[-1]
+                    if fd.filename:
+                        ext = fd.filename.rsplit('.',1)[-1]
                         if ext:
                             media.extension = ext
 
                     # if there is a comment from the author add it
                     if comment:
-                        comment = m.Comment(media=media,
-                                            content=comment,
-                                            rating=rating,
-                                            user=cherrypy.request.user)
-                        m.session.add(comment)
+                        c = m.Comment(media=media,
+                                      content=comment,
+                                      rating=rating,
+                                      user=cherrypy.request.user)
+                        m.session.add(c)
 
                     # save file data to the drive
-                    media.set_data(file_data.file.read())
+                    media.set_data(fd.file.read())
 
                     # add our tags
                     for tag_name in tags:
                         media.add_tag_by_name(tag_name)
 
                     # the album can either be an id or a
-                    # new name
+                   # new name
                     if album_id or album_name:
                         if album_id:
                             album = m.Album.get(album_id)
                         else:
-                            album = m.Album(name=album_name,
-                                            user=cherrypy.request.user)
-                            m.session.add(album)
+                            album = m.Album.get_by(name=album_name)
+                            if not album:
+                                album = m.Album(name=album_name,
+                                                owner=cherrypy.request.user)
+                                m.session.add(album)
                         media.albums.append(album)
 
                     # add our media to the db, commit
                     m.session.add(media)
-                    m.session.commit()
+                m.session.commit()
 
-                    # let our user know it worked
-                    add_flash('info','New media successfully created!')
+                # let our user know it worked
+                add_flash('info','New media successfully created!')
 
-                    # send them to the new media's page
-                    redirect('/media/%s' % media.id)
+                # send them to the new media's page
+                if album:
+                    redirect('/album/%s' % album.id)
+                else:
+                    redirect('/media/%s' % '/'.join(media.id))
 
         except Exception, ex:
             raise
@@ -104,9 +112,34 @@ class Media:
         return 'update'
 
     @cherrypy.expose
-    def delete(self):
+    def delete(self,media_id=[],action=None,confirmed=False):
         """ delete this media, only allowed by media owner """
-        return 'delete'
+        cherrypy.log('media_id: %s' % media_id)
+        cherrypy.log('confirmed: %s' % confirmed)
+        try:
+            found = []
+            if not media_id:
+                add_flash('error','no media selected to delete')
+            else:
+                for id in media_id:
+                    media = m.Media.get(id)
+                    if not media:
+                        raise e.ValidationException('Media not found')
+                    found.append(media)
+                    if confirmed:
+                        m.session.delete(media)
+                if confirmed:
+                    m.session.commit()
+                    add_flash('info','Media successfully deleted')
+                    redirect('/media/')
+
+        except Exception, ex:
+            raise
+            # error!
+            add_flash('error','%s' % ex)
+
+        return render('/media/delete.html',media=found)
+
 
     @cherrypy.expose
     def data(self,id,filename=None,size=None):
@@ -133,6 +166,7 @@ class Media:
         cherrypy.log('args: %s' % str(args))
 
         media = []
+        
         for arg in args:
             # start by checking for it by id
             found = m.Media.get(arg)

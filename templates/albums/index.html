@@ -1,0 +1,15 @@
+<%inherit file="/albums/base.html"/>
+
+<%def name="page_title()">
+List'o'Albums
+</%def>
+
+<%def name="page_name()">
+All the albums you can eat!
+</%def>
+
+<%namespace file="/albums/views.html" name="v"/>
+
+% for a in albums:
+    ${v.compact_list_item(a)}
+% endfor

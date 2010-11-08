@@ -1,0 +1,38 @@
+<%def name="media_content(m,size=None)">
+    % if m.extension.lower() in ('gif','jpeg','jpg','png'):
+        <a href="/media/data/${m.id}"><img class="media"
+                 title="${m.title} by ${m.user.handle}"
+                 src="/media/data/${m.id}?size=${size or ''}"/></a>
+    % else:
+        media extension unknown!
+    % endif
+</%def>
+
+<%def name="compact_view(m,size=None)">
+    <div class="media_block">
+        <div class="media_container">
+            ${media_content(m,size=size)}
+        </div>
+    </div>
+</%def>
+
+<%def name="media_links(m)">
+    <div class="links">
+        % if request.user == m.user:
+            <a href="/media/delete/${m.id}">delete media</a>
+        % endif
+    </div>
+</%def>
+
+<%def name="large_view(m)">
+    <%namespace name="c" file="/comments/views.html"/>
+    <div class="media_block">
+        <div class="media_container">
+            ${media_content(m)}
+        </div>
+        ${c.large_view(m.comments)}
+        ${c.add_form(m)}
+        ${media_links(m)}
+    </div>
+
+</%def>

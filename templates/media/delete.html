@@ -1,0 +1,26 @@
+<%inherit file="/media/base.html"/>
+
+<%def name="page_title()">
+Lets get rid of this stuff
+</%def>
+
+<%def name="page_header()">
+sure?
+</%def>
+
+Review before you delete:
+
+<form action="/media/delete" method="POST">
+    % for m in media:
+    <div>
+        <label>
+        <input checked="checked" type="checkbox" name="media_id"
+               value="${m.id}"/>
+        <img src="/media/data/${m.id}?size=200"
+             title="${m.title} by ${m.user.handle}">
+        </label>
+    </div>
+    % endfor
+    <input type="hidden" name="confirmed" value="1"/>
+    <input type="submit" value="Confirm Delete" name="action"/>
+</form>

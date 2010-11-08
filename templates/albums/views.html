@@ -1,0 +1,12 @@
+
+
+<%def name="compact_list_item(a)">
+    <div class="album_block">
+        <a href="/album/${a.id}/">
+            ${a.name} (${len(a.media)})
+            ${'by %s' % a.owner.handle if a.owner else ''}
+        </a>
+    </div>
+</%def>
+
+

@@ -35,7 +35,7 @@
 
     <div id="link_box">
         uR@: 
-        <a href="${request.path_info.rsplit('/',1)[0]}/">
+        <a href="/${request.path_info.split('/')[1]}/">
             ${self.section_name()}
         </a>
         &raquo;

@@ -145,7 +145,6 @@ class Media(BaseEntity):
         cherrypy.log('adding_data: %s' % self.media_path)
         fh.write(data)
         fh.close()
-        m.session.commit()
         return True
 
     def create_thumbnail(self,w,h='',overwrite=False):

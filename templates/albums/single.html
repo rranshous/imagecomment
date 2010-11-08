@@ -1,0 +1,19 @@
+<%inherit file="/albums/base.html"/>
+
+<%def name="page_title()">
+Results!
+</%def>
+
+<%def name="page_name()">
+    ${album.name if album else '!'}
+</%def>
+
+<%namespace file="/media/views.html" name="m"/>
+
+<style>
+    .media_container, .media_block { display: inline; }
+</style>
+
+% for media in album.media:
+    ${m.compact_view(media,200)}
+% endfor

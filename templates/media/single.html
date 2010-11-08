@@ -1,5 +1,7 @@
 <%inherit file="/media/base.html"/>
 
+<%namespace file="/media/views.html" import="large_view"/>
+
 <%def name="page_title()">
 Results!
 </%def>
@@ -35,39 +37,8 @@ hope you like it
     form.add_comment { margin-top: 20px; }
 </style>
 
+
+
 % for m in media:
-    <div class="media_block">
-        <div class="media_container">
-            % if m.extension.lower() in ('gif','jpeg','jpg','png'):
-                <a href="/media/data/${m.id}">
-                    <img class="media"
-                         title="${m.title} by ${m.user.handle}"
-                         src="/media/data/${m.id}?size=600"/>
-                </a>
-            % else:
-                media extension unknown!
-            % endif
-        </div>
-        % for c in m.comments:
-            <div class="comment" title="${c.title or ''}">
-                ${c.content or ''}
-                <span class="rating">
-                    ${(c.rating or 0) * '&hearts;'}
-                </span>
-                <span class="handle">
-                    ${c.user.handle or ''}
-                </span>
-            </div>
-        % endfor
-        <form class="add_comment" method="POST" action="/comment/create/">
-            add comment: <input type="text" name="content"/>
-            <select name="rating">
-                % for i in xrange(6):
-                    <option value="${i}">${i * '&hearts;'}</option>
-                % endfor
-            </select>
-            <input type="hidden" value="${m.id}" name="media_id"/>
-            <input type="submit" value="2&cent;" name="action"/>
-        </form>
-    </div>
+    ${large_view(m)}
 % endfor

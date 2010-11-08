@@ -1,0 +1,33 @@
+<%def name="single_comment(c)">
+    ${c.content or ''}
+    <span class="rating">
+        ${(c.rating or 0) * '&hearts;'}
+    </span>
+    <span class="handle">
+        ${c.user.handle or ''}
+    </span>
+</%def>
+
+<%def name="large_view(comments)">
+    <div class="comment_block">
+        % for c in comments:
+            <div class="comment" title="${c.title or ''}">
+                ${single_comment(c)}
+            </div>
+        % endfor
+    </div>
+</%def>
+
+
+<%def name="add_form(m)">
+    <form class="add_comment" method="POST" action="/comment/create/">
+        add comment: <input type="text" name="content"/>
+        <select name="rating">
+            % for i in xrange(6):
+                <option value="${i}">${i * '&hearts;'}</option>
+            % endfor
+        </select>
+        <input type="hidden" value="${m.id}" name="media_id"/>
+        <input type="submit" value="2&cent;" name="action"/>
+    </form>
+</%def>
