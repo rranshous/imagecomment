@@ -156,9 +156,12 @@ class Media:
         else:
             path = media.media_path
         cherrypy.log('path: %s' % path)
-        return cherrypy.lib.static.serve_file(path,
+        if path:
+            return cherrypy.lib.static.serve_file(path,
                                               content_type=media.type,
                                               name = filename)
+        else:
+            return redirect('/img/no_thumbnail.gif')
 
     @cherrypy.expose
     def default(self,*args,**kwargs):
