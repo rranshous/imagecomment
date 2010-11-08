@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import cherrypy
 from auth import set_user
 import logging as log

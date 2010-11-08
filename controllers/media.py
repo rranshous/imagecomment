@@ -1,7 +1,7 @@
 import cherrypy
 import models as m
 from helpers import render, add_flash, redirect
-import exceptions as e
+import lib.exceptions as e
 import os
 from sqlalchemy import or_
 
