@@ -9,6 +9,7 @@ import controllers as c
 if __name__ == "__main__":
     # setup the db connection
     m.setup()
+
     # create our app from root
     app = cherrypy.Application(c.Root())
 
