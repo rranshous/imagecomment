@@ -26,7 +26,9 @@ def reset_session():
     return
 
 def setup():
-    metadata.bind = "sqlite:///dbs/media.db"
+    metadata.bind = cherrypy.config.get('db_url')
+    cherrypy.log('bind: %s' % cherrypy.config.get('db_url'))
+#    metadata.bind = "sqlite:///dbs/media.db"
     metadata.bind.echo = False
     setup_all()
 
