@@ -22,7 +22,6 @@
             color: #442b08;
         }
         #link_box {
-            padding-left: 20px;
         }
         #link_box a { text-decoration: none }
     </style>
@@ -34,7 +33,12 @@
     </div>
 
     <div id="link_box">
-        uR@: 
+        [
+            <a href="/media/">media</a>
+            <a href="/album/">albums</a>
+            <a href="/tag/">tags</a>
+            <a href="/user/">users</a>
+        ]<br>
         <a href="/${request.path_info.split('/')[1]}/">
             ${self.section_name()}
         </a>
