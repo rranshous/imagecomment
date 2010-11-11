@@ -1,11 +1,22 @@
 <html>
 <head>
     <title>Ranshous ${self.page_title()}</title>
+    <link href='http://fonts.googleapis.com/css?family=Lobster&subset=latin'
+          rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Neuton&subset=latin'
+          rel='stylesheet' type='text/css'>
     <style>
+        a, a:hover, a:visited, a:active {
+            color: #442b08;
+        }
         body { margin: 0; padding: 0; font-size: 25px;
-               background-color: #6c6521; color: #2f2b08; }
-        #header { color: #cccccc; background-color: #3a350a;
-                  padding: 2px 4px; }
+               background: #6c6521; color: #2f2b08;
+               font-family: 'Neuton'; }
+        #header { color: #cccccc;
+                  text-align: center;
+                  margin: 0 0; }
+        #header a { color: #cccccc; }
+        #page_header { margin-bottom: 10px }
         #flashbox {
             display: inline;
             -moz-box-shadow: 3px 0 #000;
@@ -18,34 +29,48 @@
         #content {
             padding: 10px;
         }
-        a, a:hover, a:visited, a:active {
-            color: #442b08;
+        #page_header {
+            background: #3a350a;
+            font-size: 1.3em;
         }
         #link_box {
+            background: #3a350a;
+            min-height: 42px;
+            font-family: 'Lobster';
+            line-height: 42px;
         }
-        #link_box a { text-decoration: none }
+        #link_box > div { 
+            float: left;
+            width: 48%;
+            text-align: center;
+        }
+        #link_box .section_links a { margin: 0 7px; }
     </style>
 </head>
 <body>
 
     <div id="header">
-        ${self.page_header()}
-    </div>
+        <div id="page_header">
+            ${self.page_header()}<br>
+        </div>
 
-    <div id="link_box">
-        [
-            <a href="/media/">media</a>
-            <a href="/album/">albums</a>
-            <a href="/tag/">tags</a>
-            <a href="/user/">users</a>
-        ]<br>
-        <a href="/${request.path_info.split('/')[1]}/">
-            ${self.section_name()}
-        </a>
-        &raquo;
-        <a href="">
-            ${self.page_name()}
-        </a>
+        <div id="link_box">
+            <div class="section_links">
+                    <a href="/media/">Media</a>
+                    <a href="/album/">Albums</a>
+                    <a href="/tag/">Tags</a>
+                    <a href="/user/">Users</a>
+            </div>
+            <div class="breakcrumb_links">
+                <a href="/${request.path_info.split('/')[1]}/">
+                    ${self.section_name()}
+                </a>
+                &raquo;
+                <a href="">
+                    ${self.page_name()}
+                </a>
+            </div>
+        </div>
     </div>
 
     <div id="flashbox">

@@ -1,0 +1,16 @@
+<%inherit file="/users/base.html"/>
+
+<form action="/user/edit/" method="POST">
+    <label><span>handle:</span>
+            <input type="text" value="${user.handle}" name="handle" />
+    </label>
+    <label><span>email address:</span>
+            <input type="text" value="${user.email_address}" name="email"/>
+    </label>
+    <label><span>password:</span>
+            <input type="password" name="password1">
+    </label>
+    <label><span>retype password:</span>
+            <input type="password" name="password2">
+    </label>
+</form>
