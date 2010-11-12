@@ -1,0 +1,9 @@
+<%def name="link(user)">
+<a href="/user/${user.id}">${user.handle}</a>
+</%def>
+
+<%def name="compact(user)">
+    <div class="user_block">
+        ${link(user)}
+    </div>
+</%def>

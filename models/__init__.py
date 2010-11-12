@@ -47,6 +47,11 @@ class User(BaseEntity):
     avatar_url.public = True
     # hash of password
     password_hash = Field(UnicodeText)
+    # email address
+    email_address = Field(Unicode(120))
+
+    # admin bool flag
+    is_admin = Field(BOOLEAN(False))
 
     media = OneToMany('Media')
     comments = OneToMany('Comment')
@@ -63,6 +68,10 @@ class User(BaseEntity):
     def create_password_hash(cls,p):
         """ returns back hashed version of password """
         return sha1(p).hexdigest()
+
+    def get_tags(self):
+        tags = Tag.query.join('media').filter(Media.user==self).all()
+        return tags
 
 
 class Tag(BaseEntity):

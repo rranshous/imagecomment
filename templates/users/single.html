@@ -1,0 +1,22 @@
+<%inherit file="/users/base.html"/>
+<%namespace file="/users/views.html" name="u"/>
+<%namespace file="/views.html" name="v"/>
+<%namespace file="/albums/views.html" name="a"/>
+
+% if user:
+
+    ${u.compact(user)}
+
+    <div class="albums">
+        % for album in user.albums:
+            ${a.compact(album)}
+        % endfor
+    </div>
+
+    <div class="tags">
+        % for tag in user.get_tags():
+            ${t.compact(tag)}
+        % endfor
+    </div>
+
+% endif

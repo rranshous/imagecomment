@@ -1,4 +1,5 @@
 <%inherit file="/base.html"/>
+<%namespace file="/views.html" name="v"/>
 
 <%def name="page_title()">
 Results!
@@ -8,7 +9,6 @@ Results!
 hope you like it
 </%def>
 
-<%def name="section_name()">
-Media!
+<%def name="subsection_links()">
+${v.subsection_link('create','Upload')}
 </%def>
-

@@ -1,0 +1,9 @@
+<%inherit file="/users/base.html"/>
+<%namespace file="/views.html" name="v"/>
+
+${v.simple_form('/user/create','POST', submit_value='Create', fields= (
+            ('Handle','text','handle'),
+            ('Email Address','text','email'),
+            ('Password','password','password'),
+        ))}
+

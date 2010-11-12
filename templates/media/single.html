@@ -1,29 +1,31 @@
 <%inherit file="/media/base.html"/>
-
-<%namespace file="/media/views.html" import="large_view"/>
+<%namespace file="/media/views.html" name="m"/>
+<%namespace file="/users/views.html" name="u"/>
+<%namespace file="/albums/views.html" name="a"/>
+<%namespace file="/tags/views.html" name="t"/>
 
 <%def name="page_title()">
-Results!
+% if media:
+    ${media.title}
+% else:
+    ${search}
+% endif
 </%def>
 
 <%def name="page_header()">
-hope you like it
-</%def>
-
-<%def name="page_name()">
 % if media:
-    ${media[0].title}
+    ${m.link(media)}
     <span style="font-size:.6em;">
-        by ${media[0].user.handle}
-        % if media[0].albums:
-            (${', '.join([a.name for a in media[0].albums])})
+        by ${u.compact(media.user)}
+        % if media.albums:
+            (${', '.join([a.link(album) for album in media.albums])})
         % endif
-        % if media[0].tags:
-            [${', '.join([t.name for t in media[0].tags])}]
+        % if media.tags:
+            [${', '.join([t.link(tag) for tag in media.tags])}]
         % endif
     </span>
 % else:
-    ${search}
+    Not found!
 % endif
 </%def>
 
@@ -39,6 +41,6 @@ hope you like it
 
 
 
-% for m in media:
-    ${large_view(m)}
-% endfor
+% if media:
+    ${m.large_view(media,800)}
+% endif

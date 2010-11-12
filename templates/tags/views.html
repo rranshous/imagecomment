@@ -1,0 +1,11 @@
+<%def name="link(t)">
+    <a href="/tag/${tag.id}/">${tag.name}</a>
+</%def>
+
+<%def name="compact(tag)">
+    <div class="tag_block">
+        <a href="/tag/${tag.id}/">
+            ${tag.name} (${len(tag.media)})
+        </a>
+    </div>
+</%def>

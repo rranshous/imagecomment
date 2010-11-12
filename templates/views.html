@@ -1,0 +1,39 @@
+<%def name="subsection_link(subsection,name=None)">
+    <a class="${subsection}
+              ${'active' if h.is_active_subsection(subsection) else ''}"
+       href="/${request.section_name}/${subsection}/">${subsection if not name else name}</a>
+</%def>
+
+
+<%def name="section_link(section,name=None)">
+    <a class="${section}
+            ${'active' if h.is_active_section(section) else ''}"
+       href="/${section}/">${section if not name else name}</a>
+</%def>
+
+<%def name="simple_form(action,method,fields=[],submit_value='Submit',**kwargs)">
+    <form action="${action}" method="${method}"
+    % for k,v in kwargs.iteritems():
+        ${k}="${v}"
+    % endfor
+    >
+    % for f in fields:
+        ${simple_field(*f)}
+    % endfor
+    <br>
+    <input type="submit" name="action" value="${submit_value}"/>
+    </form>
+</%def>
+<%def name="simple_field(label,type,name,value=None,**kwargs)">
+    <div>
+        <label for="${type}_${name}">
+            ${label}:
+        </label>
+        <input id="${type}_${name}" type="${type}"
+                name="${name}" value="${value or ''}"
+        % for k,v in kwargs.iteritems():
+            ${k}="${v}"
+        % endfor
+        />
+    </div>
+</%def>

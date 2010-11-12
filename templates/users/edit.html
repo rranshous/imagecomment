@@ -1,16 +1,9 @@
 <%inherit file="/users/base.html"/>
+<%namespace file="/views.html" name="v"/>
 
-<form action="/user/edit/" method="POST">
-    <label><span>handle:</span>
-            <input type="text" value="${user.handle}" name="handle" />
-    </label>
-    <label><span>email address:</span>
-            <input type="text" value="${user.email_address}" name="email"/>
-    </label>
-    <label><span>password:</span>
-            <input type="password" name="password1">
-    </label>
-    <label><span>retype password:</span>
-            <input type="password" name="password2">
-    </label>
-</form>
+${v.simple_form('/user/update','POST', submit_value='Edit', fields= (
+            ('Handle','text','handle',user.handle),
+            ('Email Address','text','email',user.email_address),
+            ('New Password','password','password1'),
+            ('Retype Password','password','password2')
+        ))}

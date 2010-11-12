@@ -19,28 +19,16 @@ have a look @ our wares
 <style>
     .media_container .media {
         margin: 10px;
-        float: left;
+        display: inline;
     }
 </style>
-
-<style>
-    .links {
-        margin-bottom: 10px;
-    }
-</style>
-
-<div class="links">
-    <a href="./create">create</a>
-</div>
 
 <div class="media_container">
     % for media in frontpage_media:
      
-    <a href="/media/${media.id}/">
-        <img class="media"
+    <a href="/media/${media.id}/"><img class="media"
              src="/media/data/${media.id}?size=250"
-             title="${media.title} by ${media.user.handle}"/>
-    </a>
+             title="${media.title} by ${media.user.handle}"/></a>
 
     % endfor
 </div>

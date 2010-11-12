@@ -9,6 +9,10 @@
     % endif
 </%def>
 
+<%def name="link(m)">
+    <a href="/media/${m.id}">${m.title}</a>
+</%def>
+
 <%def name="compact_view(m,size=None)">
     <div class="media_block">
         <div class="media_container">
@@ -20,16 +24,16 @@
 <%def name="media_links(m)">
     <div class="links">
         % if request.user == m.user:
-            <a href="/media/delete/${m.id}">delete media</a>
+            <a href="/media/edit/${m.id}">edit</a>
         % endif
     </div>
 </%def>
 
-<%def name="large_view(m)">
+<%def name="large_view(m,size=None)">
     <%namespace name="c" file="/comments/views.html"/>
     <div class="media_block">
         <div class="media_container">
-            ${media_content(m)}
+            ${media_content(m,size=size)}
         </div>
         ${c.large_view(m.comments)}
         ${c.add_form(m)}

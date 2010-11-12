@@ -164,50 +164,47 @@ class Media:
             return redirect('/img/no_thumbnail.gif')
 
     @cherrypy.expose
-    def default(self,*args,**kwargs):
-
-        cherrypy.log('args: %s' % str(args))
-
-        media = []
-        
-        for arg in args:
-            # start by checking for it by id
-            found = m.Media.get(arg)
-
-            if not found:
-                found = m.Media.query.join('user').filter_by(handle=arg). \
-                                      order_by(m.Media.created_at).first()
-
-            if not found:
-                found = m.Media.query.filter(m.Media.title==arg). \
-                                      order_by(m.Media.created_at).first()
-
-            if found:
-                media.append(found)
+    def default(self,id):
+        """ return page for media w/ given id """
+        try:
+            media = m.Media.get(id)
+            if not media:
+                raise e.ValidationException('Media not found')
+        except ValidationException, ex:
+            add_flash('error','%s' % ex)
 
         cherrypy.log('media: %s' % media)
 
-        # whaaa, no media?
-        if not media:
-            cherrypy.log('flashing')
-            add_flash('error','media appears to be awol!')
 
-        return render('/media/single.html',media=media,
-                                           search=' '.join(args))
+        return render('/media/single.html',media=media)
 
-    def check_match(self,*args,**kwargs):
-        """ arg could be the id or title of a media,
-            if not match and kwarg bool=True return False
-            if no match, else not found """
 
-        # check if it matches:
-        if media:
-            self.media
-            return self.index(*args,**kwargs)
+    @cherrypy.expose
+    def search(self,*args,**kwargs):
+        """ use the args to find media """
+        media = []
+        try:
+            for arg in args:
+                # start by checking for it by id
+                found = m.Media.get(arg)
 
-        # id
-        # title
-        # media type
-        # username
-        pass
+                if not found:
+                    found = m.Media.query.join('user').filter_by(handle=arg). \
+                                          order_by(m.Media.created_at).first()
 
+                if not found:
+                    found = m.Media.query.filter(m.Media.title==arg). \
+                                          order_by(m.Media.created_at).first()
+
+                if found:
+                    media = found
+
+                # whaaa, no media?
+                if not media:
+                    cherrypy.log('flashing')
+                    add_flash('error','media appears to be awol!')
+        except ValidationException, ex:
+            add_flash('error','%s' % ex)
+
+        return render('/media/search.html',media=media,
+                        search=','.join(args))

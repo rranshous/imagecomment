@@ -1,15 +1,3 @@
-<%def name="page_title()">
-Albums: collections of media!
-</%def>
-
-<%def name="page_header()">
-for your viewing pleasure
-</%def>
-
-<%def name="section_name()">
-ALBUMS!
-</%def>
-
 
 <%def name="compact_list_item(a)">
     <div class="album_block">
@@ -20,4 +8,14 @@ ALBUMS!
     </div>
 </%def>
 
+<%def name="compact(a)">
+    <div class="album_block">
+        <a href="/album/${a.id}/">
+            ${a.name} (${len(a.media)})
+        </a>
+    </div>
+</%def>
 
+<%def name="link(a)">
+    <a href="/album/${a.id}/">${a.name}</a>
+</%def>

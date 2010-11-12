@@ -1,5 +1,6 @@
 from mako.template import Template
 from mako.lookup import TemplateLookup
+import helpers as h
 import cherrypy
 import os
 
@@ -11,7 +12,8 @@ def render(path,**kwargs):
     template = lookup.get_template(path)
     cherrypy.log('request: %s' % cherrypy.request)
     kwargs.update({'session':cherrypy.session,
-                   'request':cherrypy.request})
+                   'request':cherrypy.request,
+                   'h':h})
     s = template.render(**kwargs)
     return s
 

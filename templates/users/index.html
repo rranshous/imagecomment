@@ -1,3 +1,16 @@
 <%inherit file="/users/base.html"/>
+<%namespace file="/users/views.html" name="u"/>
 
+<%def name="page_name()">
+User list
+</%def>
 
+<%def name="page_title()">
+User list
+</%def>
+
+% for user in users:
+<div>
+    ${u.compact(user)}
+</div>
+% endfor
