@@ -31,6 +31,7 @@ git'r'uploaded
         <label for="text_album">Album:</label>
         <input type="text" name="album_name" id="text_album"/> or
         <select name="album_id">
+            <option value=""></option>
         % for album in request.user.albums:
             <option value="${album.id}">${album.name}</option>     
         % endfor

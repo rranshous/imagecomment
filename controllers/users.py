@@ -51,14 +51,19 @@ class User:
                         raise e.ValidationException('Handle taken')
                     user.handle = handle
                 if email:
+                    cherrypy.log('email:%s' % email)
                     user.email_address = email
                 if password1:
                     if password1 != password2:
                         raise e.ValidationException('Passwords do not match')
                     user.password = password1
+
+                # save our changes
+                m.session.commit()
+
+                # take a look
                 redirect('/user/%s' % user.id)
         except e.ValidationException, ex:
-            raise
             add_flash('error','%s' % ex)
 
         return render('/users/edit.html',user=user)

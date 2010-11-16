@@ -31,7 +31,7 @@
     <div class="media">
         <h3>Media</h3>
         % for media in user.media:
-            ${m.compact(media)}
+            ${m.thumbnail(media,200)}
         % endfor
         % if not user.media:
             none
