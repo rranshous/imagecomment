@@ -22,6 +22,12 @@
     </div>
 </%def>
 
+<%def name="thumbnail(m,size=None)">
+    <a href="/media/${m.id}/"><img
+                    src="/media/data/${m.id}?size=${size}"
+                    title="${m.title}"/></a>
+</%def>
+
 <%def name="media_links(m)">
     <div class="links">
         % if request.user == m.user:

@@ -175,12 +175,16 @@ class Media(BaseEntity):
             thumbnail_root = cherrypy.config.get('thumbnail_root')
             out_path = os.path.join(thumbnail_root,
                                     '%s_%s' % (size,file_name))
+            out_path = os.path.abspath(out_path)
+            media_path = os.path.abspath(self.media_path)
             if os.path.exists(out_path) and not overwrite:
+                cherrypy.log('thumbnail exists')
                 return out_path
 
             cmd = ['convert','-thumbnail',size,self.media_path,out_path]
             cherrypy.log('cmd: %s' % cmd)
             r = call(cmd) # TODO check return code
+            cherrypy.log('r: %s' % r)
             cherrypy.log('out path: %s' % out_path)
             return out_path
 
