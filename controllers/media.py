@@ -30,7 +30,7 @@ class Media:
 
                 # can't create a media entry w/o data!
                 elif (isinstance(file_data,list) and not file_data) or \
-                     not file_data.filename:
+                     (not isinstance(file_data,list) and not file_data.filename):
                     raise e.ValidationException('error','must upload file!')
 
                 # legit ratings only!
