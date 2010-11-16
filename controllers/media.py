@@ -29,8 +29,8 @@ class Media:
                     raise e.ValidationException('error','title required!')
 
                 # can't create a media entry w/o data!
-                elif (isinstance(file_data,list) and not filedata) or \
-                        not file_data.filename:
+                elif (isinstance(file_data,list) and not file_data) or \
+                     (not isinstance(file_data,list) and not file_data.filename):
                     print 'file_data:',file_data
                     raise e.ValidationException('error','must upload file!')
 
