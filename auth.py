@@ -16,5 +16,3 @@ def hash_password(p):
 def set_user():
     handle = cherrypy.request.login
     cherrypy.request.user = m.User.get_by(handle=handle)
-
-

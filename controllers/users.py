@@ -1,6 +1,6 @@
 import cherrypy
 import models as m
-from helpers import render, add_flash, redirect
+from helpers import render, add_flash, redirect, require_admin
 import lib.exceptions as e
 
 class User:
@@ -10,6 +10,7 @@ class User:
         return render('/users/index.html',users=users)
 
     @cherrypy.expose
+    @require_admin
     def create(self,handle=None,email=None,password=None,action=None):
         """ create a new user """
         try:
@@ -26,7 +27,7 @@ class User:
                 m.session.commit()
                 redirect('/user/%s' % user.id)
 
-        except ValidationException, ex:
+        except e.ValidationException, ex:
             add_flash('error','%s' % ex)
 
         return render('/users/create.html')

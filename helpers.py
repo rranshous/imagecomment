@@ -1,6 +1,14 @@
 from templates import render
 import cherrypy
-from cherrypy import HTTPRedirect
+from cherrypy import HTTPRedirect, HTTPError
+from decorator import decorator
+
+@decorator
+def require_admin(f,*args,**kwargs):
+    """ raises 403 if user is not an admin """
+    if not cherrypy.request.user.is_admin:
+        raise HTTPError(403)
+    return f(*args,**kwargs)
 
 def add_flash(msg_type,msg=None):
     if not msg:

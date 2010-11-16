@@ -147,7 +147,8 @@ class Media(BaseEntity):
         if not self.media_path:
             t = NamedTemporaryFile(delete=False,
                                    dir=cherrypy.config.get('media_root'),
-                                   suffix='.%s'%self.extension)
+                                   suffix='.%s'%self.extension,
+                                   prefix='media_')
             fh = t.file
             self.media_path = os.path.abspath(t.name)
         else:
@@ -171,8 +172,9 @@ class Media(BaseEntity):
             else:
                 size = '%sx%s' % (w,h)
             file_name = os.path.basename(self.media_path)
-            file_dir = os.path.dirname(self.media_path)
-            out_path = os.path.join(file_dir,'%s_%s' % (size,file_name))
+            thumbnail_root = cherrypy.config.get('thumbnail_root')
+            out_path = os.path.join(thumbnail_root,
+                                    '%s_%s' % (size,file_name))
             if os.path.exists(out_path) and not overwrite:
                 return out_path
 
@@ -181,8 +183,8 @@ class Media(BaseEntity):
             r = call(cmd) # TODO check return code
             cherrypy.log('out path: %s' % out_path)
             return out_path
-        if self.is_video():
-            return None
+
+        return None
 
     @classmethod
     def get_random_path(cls):

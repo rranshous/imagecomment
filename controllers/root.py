@@ -4,7 +4,7 @@ from tags import Tag
 from users import User
 from comments import Comment
 from albums import Album
-from helpers import render
+from helpers import render, redirect
 
 class Root:
     """ sits @ The root of the app """
@@ -19,4 +19,9 @@ class Root:
     def index(self):
         """ login if not authed else the home page """
         return render('/index.html')
-
+    
+    @cherrypy.expose
+    def logout(self):
+        """ clear the sesion to logout the user """
+        cherrypy.lib.sessions.expire()
+        redirect('/')

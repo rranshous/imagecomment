@@ -29,7 +29,8 @@ class Media:
                     raise e.ValidationException('error','title required!')
 
                 # can't create a media entry w/o data!
-                elif not file_data:
+                elif (isinstance(file_data,list) and not file_data) or \
+                     not file_data.filename:
                     raise e.ValidationException('error','must upload file!')
 
                 # legit ratings only!
@@ -98,8 +99,7 @@ class Media:
                 else:
                     redirect('/media/%s' % '/'.join(media.id))
 
-        except Exception, ex:
-            raise
+        except e.ValidationException, ex:
             # woops, alert of error
             add_flash('error','%s' % ex)
 
@@ -156,6 +156,7 @@ class Media:
         else:
             path = media.media_path
         cherrypy.log('path: %s' % path)
+        path = os.path.abspath(path)
         if path and os.path.exists(path):
             return cherrypy.lib.static.serve_file(path,
                                               content_type=media.type,
