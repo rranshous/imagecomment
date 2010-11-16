@@ -8,7 +8,7 @@
 <%def name="section_link(section,name=None)">
     <a class="${section}
             ${'active' if h.is_active_section(section) else ''}"
-       href="/${section}/">${section if not name else name}</a>
+       href="/${section or '.'}/">${section if not name else name}</a>
 </%def>
 
 <%def name="simple_form(action,method,fields=[],submit_value='Submit',**kwargs)">

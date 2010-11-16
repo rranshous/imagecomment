@@ -2,21 +2,39 @@
 <%namespace file="/users/views.html" name="u"/>
 <%namespace file="/views.html" name="v"/>
 <%namespace file="/albums/views.html" name="a"/>
+<%namespace file="/media/views.html" name="m"/>
 
 % if user:
 
     ${u.compact(user)}
 
     <div class="albums">
+        <h3>Albums</h3>
         % for album in user.albums:
             ${a.compact(album)}
         % endfor
+        % if not user.albums:
+            none
+        % endif
     </div>
 
     <div class="tags">
+        <h3>Tags</h3>
         % for tag in user.get_tags():
             ${t.compact(tag)}
         % endfor
+        % if not user.get_tags():
+            none
+        % endif
     </div>
 
+    <div class="media">
+        <h3>Media</h3>
+        % for media in user.media:
+            ${m.compact(media)}
+        % endfor
+        % if not user.media:
+            none
+        % endif
+    </div>
 % endif

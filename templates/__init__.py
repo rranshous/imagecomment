@@ -5,7 +5,8 @@ import cherrypy
 import os
 
 here = os.path.abspath(os.path.dirname(__file__))
-lookup = TemplateLookup(directories=[here],format_exceptions=True)
+lookup = TemplateLookup(directories=[here],format_exceptions=True,
+                        output_encoding='utf-8', encoding_errors='replace')
 
 def render(path,**kwargs):
     global errors, warnings, info, lookup
@@ -14,6 +15,6 @@ def render(path,**kwargs):
     kwargs.update({'session':cherrypy.session,
                    'request':cherrypy.request,
                    'h':h})
-    s = template.render(**kwargs)
+    s = template.render_unicode(**kwargs)
     return s
 

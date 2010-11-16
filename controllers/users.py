@@ -57,7 +57,7 @@ class User:
                         raise e.ValidationException('Passwords do not match')
                     user.password = password1
                 redirect('/user/%s' % user.id)
-        except ValidationException, ex:
+        except e.ValidationException, ex:
             raise
             add_flash('error','%s' % ex)
 

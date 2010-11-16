@@ -25,3 +25,9 @@ class Root:
         """ clear the sesion to logout the user """
         cherrypy.lib.sessions.expire()
         redirect('/')
+
+    @cherrypy.expose
+    def contact(self):
+        return render('/contact.html')
+    contact_methods = contact
+    contact_me = contact
