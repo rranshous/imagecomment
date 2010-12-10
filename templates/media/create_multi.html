@@ -1,0 +1,75 @@
+<%inherit file="/media/base.html"/>
+
+<%def name="page_name()">
+upload multiple media files at once
+</%def>
+
+<%def name="head_scripts()">
+
+<script src="/js/ext-core-debug.js"></script>
+<script src="/js/multiupload.js"></script>a
+
+<script>
+var multiuploader = MultiUploader({target_form:'create_media'});
+</script>
+
+</%def>
+
+
+<style>
+    #create_media span {
+        width: 135px;
+        display:block;
+        float: left;
+    }
+    #create_media select, #create_media input {
+        width: 185px;
+    }
+</style>
+
+<form id="create_media"
+      method="POST"
+      enctype="multipart/form-data"
+      action="/media/create/">
+    <div>
+        <label for="text_title">Title:</label>
+        <input type="text" name="title" id="text_title"/>
+    </div>
+    <div>
+        <label for="text_comment">Comment:</label>
+        <input type="text" name="comment" id="text_comment"/>
+    </div>
+    <div>
+        <label for="text_album">Album:</label>
+        <input type="text" name="album_name" id="text_album"/> or
+        <select name="album_id">
+            <option value=""></option>
+        % for album in request.user.albums:
+            <option value="${album.id}">${album.name}</option>     
+        % endfor
+        </select>
+    </div>
+    <div>
+        <label for="select_rating">Rating:</label>
+        <select name="rating" id="select_rating">
+            % for i in xrange(6):
+                <option value="${i}">${i * '&hearts;'}</option>
+            % endfor
+        </select>
+    </div>
+    <div>
+        <label for="file_file_data">To Upload:</label>
+        <input type="file" name="file_data" multiple="true"
+                id="file_file_data"/>
+    <div>
+    <br>
+    <input type="submit" value="Create" name="action"/><br>
+
+    <div>
+        <input type="button" name="add_fieldset" value="Submit"/>
+    </div>
+</form>
+
+
+
+
