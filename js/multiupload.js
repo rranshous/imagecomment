@@ -1,5 +1,4 @@
 // create a class which can async upload files
-alert('here');
 
 MultiUploader = function(config) {
 
@@ -27,9 +26,9 @@ MultiUploader = function(config) {
 
     this.init();
 
-}
+};
 
-Ext.apply(MultiUploader.prototype, {
+MultiUploader.prototype = {
 
 init: function() {
     // initialize the form, unhiding the add fieldset button,
@@ -38,26 +37,32 @@ init: function() {
     // sets
 
     // create our fieldset container
-    var fieldset_container = Ext.DomHelper.append(this.target_form,{
+    var fieldset_container = Ext.DomHelper.append(Ext.getBody(),{
                                 tag:'div',
                                 style:'padding:0;margin:0;border:0;',
                                 class:this.FIELD_CONTAINER_CLASS
                              },true);
 
-    // move everything (but add_fieldset button and new container)
+    // move everything (but add_fieldset button)
     // from the form into the new container
-    this.target_form.query('*').each(function(el) {
-        var name = el.getAttribute('name');
-        if(name == this.STATUS_NAME || el == fieldset_container) {
-            return true;
+    this.target_form.select('> *').each(function(el) {
+        try {
+            var name = el.getAttribute('name');
+        } catch (err) { name = ''; }
+        if(name == this.ADD_SET_NAME) {
+            return;
         }
         el.appendTo(fieldset_container);
     });
 
+    fieldset_container.appendTo(this.target_form);
+
     // create an hidden copy of the container for replication later
-    this.container_template = this.copy_container(filedset_container);
+    this.container_template = this.copy_container(fieldset_container,
+                                                  Ext.getBody());
     this.container_template.setVisibilityMode(Ext.Element.DISPLAY);
     this.container_template.hide();
+    console.log({template:this.container_template,container:fieldset_container});
 
     // initialize the container's action buttons
     this.init_container(fieldset_container);
@@ -66,19 +71,24 @@ init: function() {
 init_container: function(container) {
     // we need to setup the add set and submit buttons
     // change the submit button to be an async submit
-    this.wrap_submit(container.down('button[type=submit]'));
+    console.log({container:container});
+    var submit_button = container.down('input[type=submit]');
+    if(!submit_button) {
+        submit_button = container.down('button[type=submit]');
+    }
+    this.wrap_submit(container.down('input[type=submit]'),container);
 
     // update the add set button so that when clicked it
     // inserts another field set
     this.wrap_add_set(container.down('button[name=add_fieldset]'));
 },
 
-wrap_add_set: function(button,container) {
+wrap_add_set: function(button) {
     // wrap the button so that when it is clicked
     // another set of fields is added to the form
     button.removeAllListeners();
     button.on('click',this.add_set,this);
-}.
+},
 
 add_set: function() {
     // create a new set copy. we are going to copy the container
@@ -119,14 +129,14 @@ async_submit: function(container) {
     var encoding = form.getAttribute('enctype');
 
     // create our new form
-    var temp_form = Ext.DomHelper.append(Ext.getBody(),
+    var temp_form = Ext.DomHelper.append(Ext.getBody(), {
         tag:'form',
         action:action,method:method,enctype:encoding,
         style:'display:none'
     },true);
 
     // move our container contents to the new form
-    container.query('*').each(function(el) {
+    container.select('*').each(function(el) {
         el.appendTo(temp_form);
     },this);
 
@@ -138,7 +148,7 @@ async_submit: function(container) {
         scope: this,
         callback: this.handle_response.createDelegate(this,
                                                       [container,new_form],
-                                                      true);
+                                                      true),
         timeout: 60000, // 1 minute
         form: temp_form,
         isUpload: true, // response must be text/html
@@ -164,7 +174,7 @@ handle_response: function(options,success,response,container,temp_form) {
         // in 3 seconds put the container content back
         // and remove the form
         (function() {
-           temp_form.query('*').each(function(el) {
+           temp_form.select('*').each(function(el) {
                 el.appendTo(container);
                 temp_form.remove();
            },this);
@@ -175,9 +185,12 @@ handle_response: function(options,success,response,container,temp_form) {
 copy_container: function(container,append_to) {
     // create a copy of the container passed
     // and append it to the second arg
+    container.select('*').each(function(el) { el.set({id:""}); },this);
     var copy = Ext.get(container.dom.cloneNode(true));
-    copy.appendTo(append_to);
-    return copy
+    Ext.DomHelper.append(append_to,copy);
+    copy = append_to.down(':last-child');
+    console.log({container:container,copy:copy})
+    return copy;
 }
 
-});
+};

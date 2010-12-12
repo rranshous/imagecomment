@@ -10,7 +10,9 @@ upload multiple media files at once
 <script src="/js/multiupload.js"></script>
 
 <script>
-//    var multiuploader = MultiUploader({target_form:'create_media'});
+Ext.onReady(function() {
+    var multiuploader = new MultiUploader({target_form:'create_media'});
+});
 </script>
 
 </%def>
@@ -66,7 +68,7 @@ upload multiple media files at once
     <input type="submit" value="Create" name="action"/><br>
 
     <div>
-        <input type="button" name="add_fieldset" value="+"/>
+        <button type="button" name="add_fieldset" value="+"/>
     </div>
 </form>
 
