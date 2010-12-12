@@ -18,7 +18,8 @@ class Media:
 
     @cherrypy.expose
     def create(self,title=None,file_data=None,comment=None,rating=None,
-                    tags=[],album_id=None,album_name=None,action=None):
+                    tags=[],album_id=None,album_name=None,action=None,
+                    multi=False):
         """ creates new media, metadata and media data submitted """
         # check and see if they are creating new media
 
@@ -51,7 +52,8 @@ class Media:
                     cherrypy.log('user: %s' % media.user)
 
                     # set the extension as the type
-                    media.type = fd.type
+                    cherrypy.log('content type: %s' % (fd.content_type))
+                    media.type = fd.content_type
 
                     # add the filename
                     if fd.filename:
@@ -75,7 +77,7 @@ class Media:
                         media.add_tag_by_name(tag_name)
 
                     # the album can either be an id or a
-                   # new name
+                    # new name
                     if album_id or album_name:
                         if album_id:
                             album = m.Album.get(album_id)
@@ -95,15 +97,18 @@ class Media:
                 add_flash('info','New media successfully created!')
 
                 # send them to the new media's page
-                if album:
+                if album_name:
                     redirect('/album/%s' % album.id)
                 else:
-                    redirect('/media/%s' % '/'.join(media.id))
+                    redirect('/media/%s' % ('/'.join(media.id)))
 
         except Exception, ex:
             raise
             # woops, alert of error
             add_flash('error','%s' % ex)
+
+        if multi:
+            return render('/media/create_multi.html')
 
         return render('/media/create.html')
 
@@ -160,7 +165,7 @@ class Media:
         cherrypy.log('path: %s' % path)
         if path and os.path.exists(path):
             return cherrypy.lib.static.serve_file(path,
-                                              content_type=media.type,
+                                              content_type=media.content_type,
                                               name = filename)
         else:
             return redirect('/img/no_thumbnail.gif')
