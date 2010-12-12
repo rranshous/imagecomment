@@ -52,8 +52,8 @@ class Media:
                     cherrypy.log('user: %s' % media.user)
 
                     # set the extension as the type
-                    cherrypy.log('content type: %s' % (fd.content_type))
-                    media.type = fd.content_type
+                    cherrypy.log('content type: %s' % (fd.type))
+                    media.type = fd.type
 
                     # add the filename
                     if fd.filename:
@@ -100,7 +100,7 @@ class Media:
                 if album_name:
                     redirect('/album/%s' % album.id)
                 else:
-                    redirect('/media/%s' % ('/'.join(media.id)))
+                    redirect('/media/%s' % media.id)
 
         except Exception, ex:
             raise
@@ -165,8 +165,7 @@ class Media:
         cherrypy.log('path: %s' % path)
         if path and os.path.exists(path):
             return cherrypy.lib.static.serve_file(path,
-                                              content_type=media.content_type,
-                                              name = filename)
+                                                  name = filename)
         else:
             return redirect('/img/no_thumbnail.gif')
 

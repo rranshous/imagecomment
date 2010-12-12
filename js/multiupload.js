@@ -1,6 +1,7 @@
 // create a class which can async upload files
+alert('here');
 
-var MultiUploader = function(config) {
+MultiUploader = function(config) {
 
     // the target form should contain the fields for
     // one file and it's meta data including a submit button
