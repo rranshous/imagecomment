@@ -1,0 +1,3 @@
+[submodule "gearmanlib"]
+	path = gearmanlib
+	url = git@github.com:rranshous/gearmanlib.git

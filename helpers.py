@@ -43,7 +43,7 @@ def thumbnail_image(in_path,out_path,size='100x100'):
 
 def async_thumbnail_image(in_path,out_path,size='100x100'):
     import gearman
-    from gearman_helpers import PickleGearmanClient
+    from gearmanlib.gearman_helpers import PickleGearmanClient
     size = str(size)
     gm_client = PickleGearmanClient(['localhost'])
     r = gm_client.submit_job('helpers_thumbnail_image',(in_path,out_path,size))
