@@ -34,3 +34,9 @@ def is_active_section(s):
 
 def is_active_subsection(s):
     return cherrypy.request.subsection_name == s
+
+def thumbnail_image(in_path,out_path,size='100x100'):
+    cmd = ['convert','-thumbnail',size,self.media_path,out_path]
+    r = call(cmd) # TODO check return code
+    return out_path
+

@@ -181,10 +181,7 @@ class Media(BaseEntity):
                 cherrypy.log('thumbnail exists')
                 return out_path
 
-            cmd = ['convert','-thumbnail',size,self.media_path,out_path]
-            cherrypy.log('cmd: %s' % cmd)
-            r = call(cmd) # TODO check return code
-            cherrypy.log('r: %s' % r)
+            thumbnail_image(self.media_path,out_path,size)
             cherrypy.log('out path: %s' % out_path)
             return out_path
 
