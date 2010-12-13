@@ -6,6 +6,7 @@ from tempfile import NamedTemporaryFile
 import models as m
 import os
 from subprocess import call
+from helpers import async_thumbnail_image as thumbnail_image
 
 ## helper functions ##
 def add_tag_by_name(self,name):

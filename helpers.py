@@ -2,6 +2,7 @@ from templates import render
 import cherrypy
 from cherrypy import HTTPRedirect, HTTPError
 from decorator import decorator
+from subprocess import call
 
 @decorator
 def require_admin(f,*args,**kwargs):
@@ -36,7 +37,16 @@ def is_active_subsection(s):
     return cherrypy.request.subsection_name == s
 
 def thumbnail_image(in_path,out_path,size='100x100'):
-    cmd = ['convert','-thumbnail',size,self.media_path,out_path]
+    cmd = ['convert','-thumbnail',size,in_path,out_path]
     r = call(cmd) # TODO check return code
+    return out_path
+
+def async_thumbnail_image(in_path,out_path,size='100x100'):
+    import gearman
+    from gearman_helpers import PickleGearmanClient
+    size = str(size)
+    gm_client = PickleGearmanClient(['localhost'])
+    r = gm_client.submit_job('helpers_thumbnail_image',(in_path,out_path,size))
+    print 'gearman completed: %s %s' % (r.state,r.result)
     return out_path
 
