@@ -31,7 +31,8 @@ class Media:
 
                 # can't create a media entry w/o data!
                 elif (isinstance(file_data,list) and not file_data) or \
-                     (not isinstance(file_data,list) and not file_data.filename):
+                     (not isinstance(file_data,list) and
+                      not file_data.filename):
                     print 'file_data:',file_data
                     raise e.ValidationException('error','must upload file!')
 
@@ -42,6 +43,7 @@ class Media:
                 # we might be getting multiple files
                 if not isinstance(file_data,list):
                     file_data = [file_data]
+
 
                 for fd in file_data:
                     # create our new media
@@ -105,7 +107,8 @@ class Media:
         except Exception, ex:
             raise
             # woops, alert of error
-            add_flash('error','%s' % ex)
+            add_flash('error')
+            m.session.rollback()
 
         if multi:
             return render('/media/create_multi.html')

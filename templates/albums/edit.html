@@ -1,0 +1,30 @@
+<%inherit file="/albums/base.html"/>
+
+<%def name="page_title()">
+Edit'n
+</%def>
+
+<%def name="page_name()">
+Editing Albums is good for the soul.
+</%def>
+
+<%namespace file="/views.html" name="v"/>
+
+<form id="edit_album" method="POST">
+    <div>
+        <label for="text_album_name">Name:</label>
+        <input type="text" name="album_name"
+               id="text_album_name" value="${album.name or ''}" />
+    </div>
+    <div>
+        <label for="select_public">Public?:</label>
+        <select name="public" id="select_public">
+            <option ${'selected="selected"' if not album.public else ''}
+                    value="true">Registered users only please.</option>
+            <option ${'selected="selected"' if album.public else ''}
+                    value="false">I'm a rockstar show that sh1t off!</option>
+        </select>
+    </div>
+    <br>
+    <input type="submit" value="Save" name="action"/><br>
+</form>
