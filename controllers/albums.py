@@ -18,7 +18,6 @@ class Album:
                 if not album_id:
                     raise e.ValidationException('error','album required')
 
-                
                 # grab our album
                 album = m.Album.get(album_id)
                 if not album:
@@ -41,12 +40,18 @@ class Album:
                 # send them to the album's page
                 redirect('/album/%s' % album.id)
 
+            elif album_id:
+                album = m.Album.get(album_id)
+                return render('albums/edit.html',album=album)
+
         except Exception, ex:
             raise
             add_flash('error')
             m.session.rollback()
 
-        return render('/albums/edit.html',album=album)
+        # if you don't supply an album Id we'll list them all
+        albums = m.Album.query.all()
+        return render('/albums/edit_list.html',albums=albums)
 
 
     @cherrypy.expose

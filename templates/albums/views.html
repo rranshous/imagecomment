@@ -19,3 +19,13 @@
 <%def name="link(a)">
     <a href="/album/${a.id}/">${a.name}</a>
 </%def>
+
+<%def name="edit_link(a)">
+    <a href="/album/edit/${a.id}/">${a.name}</a>
+</%def>
+
+<%def name="public_link(a,text=None)">
+    % if a.public:
+        <a href="/public/${a.public_key}">${'Public Link' if not text else text}</a>
+    % endif
+</%def>

@@ -4,6 +4,7 @@ from tags import Tag
 from users import User
 from comments import Comment
 from albums import Album
+from public import Public
 from helpers import render, redirect
 
 class Root:
@@ -14,12 +15,13 @@ class Root:
     comment = Comment()
     album = Album()
     default = Media() # other than the above options it's media
+    public = Public()
 
     @cherrypy.expose
     def index(self):
         """ login if not authed else the home page """
         return render('/index.html')
-    
+
     @cherrypy.expose
     def logout(self):
         """ clear the sesion to logout the user """

@@ -1,7 +1,12 @@
 <%inherit file="/albums/base.html"/>
+<%namespace file="/views.html" name="v"/>
+
+<%def name="subsection_links()">
+${v.subsection_link('edit','Edit',album.id)}
+</%def>
 
 <%def name="page_title()">
-Results!
+    ${album.name if album else 'Album?'}
 </%def>
 
 <%def name="page_name()">
@@ -9,10 +14,19 @@ Results!
 </%def>
 
 <%namespace file="/media/views.html" name="m"/>
+<%namespace file="views.html" name="a"/>
 
 <style>
     .media_container, .media_block { display: inline; }
 </style>
+
+% if album.public:
+    % if request.user:
+        <p>This album is public. Use this
+        ${a.public_link(album,'public link')}
+        to share the album with others.</p>
+    % endif
+% endif
 
 % for media in album.media:
     ${m.thumbnail(media,200)}

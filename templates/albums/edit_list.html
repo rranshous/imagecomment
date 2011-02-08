@@ -1,0 +1,10 @@
+<%inherit file="/albums/base.html"/>
+<%namespace file="views.html" name="a"/>
+
+<%def name="page_title()">
+    Edit an album
+</%def>
+
+% for album in albums:
+    ${a.edit_link(album)}
+% endfor

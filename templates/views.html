@@ -1,7 +1,7 @@
-<%def name="subsection_link(subsection,name=None)">
+<%def name="subsection_link(subsection,name=None,*args)">
     <a class="${subsection}
               ${'active' if h.is_active_subsection(subsection) else ''}"
-       href="/${request.section_name}/${subsection}/">${subsection if not name else name}</a>
+       href="/${request.section_name}/${subsection}/${'/'.join([str(x) for x in args])}">${subsection if not name else name}</a>
 </%def>
 
 

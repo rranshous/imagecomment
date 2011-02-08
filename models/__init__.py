@@ -6,6 +6,7 @@ from tempfile import NamedTemporaryFile
 import models as m
 import os
 from subprocess import call
+import random
 
 ## helper functions ##
 def add_tag_by_name(self,name):
@@ -93,6 +94,7 @@ class Album(BaseEntity):
 
     name = Field(Unicode(100))
     created_at = Field(DateTime, default=datetime.datetime.now)
+    public_key = Field(Unicode(100))
 
     comments = OneToMany('Comment')
     media = ManyToMany('Media')
@@ -101,6 +103,16 @@ class Album(BaseEntity):
     relates_to = ManyToMany('Album')
 
     add_tag_by_name = add_tag_by_name
+
+    @property
+    def public(self):
+        return True if self.public_key else False
+
+    def set_public(self,public=True):
+        if public:
+            self.public_key = random.randint(1111111,9999999)
+        else:
+            self.public_key = None
 
     def __repr__(self):
         return '<Album "%s">' % self.name
