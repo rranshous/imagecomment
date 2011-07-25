@@ -1,6 +1,7 @@
 import cherrypy
 import models as m
 from helpers import render, add_flash, redirect
+from helpers import owner_or_error
 import lib.exceptions as e
 import os
 from sqlalchemy import or_
@@ -25,23 +26,10 @@ class Media:
 
         try:
             if action:
-                # must have a title!
-                if not title:
-                    raise e.ValidationException('error','title required!')
 
-                # can't create a media entry w/o data!
-                elif (isinstance(file_data,list) and not file_data) or \
-                     (not isinstance(file_data,list) and not file_data.filename):
-                    print 'file_data:',file_data
-                    raise e.ValidationException('error','must upload file!')
-
-                # legit ratings only!
-                elif rating and not rating.isdigit() or 0> int(rating) >5:
-                    raise e.ValidationException('error','invalid rating!')
-
-                # we might be getting multiple files
-                if not isinstance(file_data,list):
-                    file_data = [file_data]
+                # validate our form info
+                file_data = m.Media.validate_form_data(title,file_data,comment,rating,
+                                                       tags,album_id,album_name)
 
                 for fd in file_data:
                     # create our new media
@@ -53,7 +41,7 @@ class Media:
 
                     # set the extension as the type
                     cherrypy.log('content type: %s' % (fd.type))
-                    media.type = fd.type
+                    media.type = str(fd.type)
 
                     # add the filename
                     if fd.filename:
@@ -113,10 +101,113 @@ class Media:
         return render('/media/create.html')
 
     @cherrypy.expose
-    def update(self,**kwargs):
+    def update(self,id,action=None,**kwargs):
         """ replace the (meta)data for this media, only allowed by
             media owner """
-        return 'update'
+        try:
+
+            # grab the media
+            media = m.Media.get(id)
+
+            # must have media to update media
+            if not media:
+                raise e.ValidationException('Media not found')
+
+            # media must belong to user
+            owner_or_error(media)
+
+            if action:
+
+                # we need to validate our form data
+                file_data = m.Media.validate_form_data(ignore_file=True,**kwargs)
+                if file_data:
+                    cherrypy.log('file_data: %s' % file_data)
+                    file_data = file_data[0]
+
+                # now we update our object
+
+                # who uploaded this?
+                media.user = cherrypy.request.user
+                cherrypy.log('user: %s' % media.user)
+
+                # set the extension as the type
+                if file_data:
+                    cherrypy.log('content type: %s' % (file_data.type))
+                    media.type = str(file_data.type)
+
+                    # add the filename
+                    if file_data.filename:
+                        ext = file_data.filename.rsplit('.',1)[-1]
+                        if ext:
+                            media.extension = ext
+
+                    # they uploaded a new photo save it down
+                    media.set_data(file_data.file.read())
+
+                # is there a comment for the photo?
+                comment = kwargs.get('comment')
+                rating = kwargs.get('rating')
+                if comment:
+
+                    # see if the author originally left a comment
+                    if media.comments and media.comments[0].user == cherrypy.request.user:
+                        c = media.comments[0]
+
+                        # if so did something change?
+                        if c.content != comment:
+                            c.content = comment
+                        if c.rating != rating:
+                            c.rating = rating
+
+                    else:
+                        # add a new comment
+                        c = m.Comment(media=media,
+                                      content=comment,
+                                      rating=rating,
+                                      user=cherrypy.request.user)
+                        m.session.add(c)
+
+
+                # add our tags
+                tags = kwargs.get('tags',[])
+                media.set_tags(tags)
+
+                # the album can either be an id or a
+                # new name
+                album_id = kwargs.get('album_id')
+                album_name = kwargs.get('album_name')
+                cherrypy.log('album: %s:%s' % (album_id,album_name))
+                if album_id or album_name:
+                    if album_id:
+                        album = m.Album.get(album_id)
+                    else:
+                        album = m.Album.get_by(name=album_name)
+                        if not album:
+                            # tell our user
+                            add_flash('info','New Album created: %s' % album.name)
+
+                            album = m.Album(name=album_name,
+                                            owner=cherrypy.request.user)
+                            m.session.add(album)
+                    media.albums.append(album)
+
+                # add our media to the db, commit
+                m.session.add(media)
+                m.session.commit()
+
+                # let our user know it worked
+                add_flash('info','Media updated!')
+
+                # send them to the media's page
+                redirect('/media/%s' % media.id)
+
+        except e.ValidationException, ex:
+            add_flash('error','%s' % ex)
+
+        cherrypy.log('rendering media edit: %s' % media)
+
+        return render('media/edit.html',media=media)
+
 
     @cherrypy.expose
     def delete(self,media_id=[],action=None,confirmed=False):
@@ -168,6 +259,7 @@ class Media:
                                                   name = filename)
         else:
             return redirect('/img/no_thumbnail.gif')
+
 
     @cherrypy.expose
     def default(self,id):

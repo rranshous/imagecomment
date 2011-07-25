@@ -6,6 +6,7 @@ from tempfile import NamedTemporaryFile
 import models as m
 import os
 from subprocess import call
+import lib.exceptions as e
 
 ## helper functions ##
 def add_tag_by_name(self,name):
@@ -197,6 +198,13 @@ class Media(BaseEntity):
         temp_file = NamedTemporaryFile(delete=False,dir=root_path)
         return temp_file.name
 
+    def set_tags(self,tags):
+        """ cheating """
+        self.tags = []
+        for tag in tags:
+            self.add_tag_by_name(tag)
+
+
     def add_tag_by_name(self,name):
         tag = Tag.get_by(name=name)
         if not tag:
@@ -223,6 +231,53 @@ class Media(BaseEntity):
             if self.extension.lower() == e:
                 return True
         return False
+
+    @classmethod
+    def validate_form_data(cls,title=None,file_data=None,comment=None,
+                           rating=None,tags=None,
+                           album_id=None,album_name=None,ignore_file=False):
+        """ raises validation exception if something is not valid
+            returns file data objects """
+
+        # comment can ride
+        comment = unicode(comment)
+
+        # tags can ride also
+
+        # album id must be a valid album
+        if album_id is not None or '':
+            if not m.Album.get(album_id):
+                raise e.ValidationException('error','album not found!')
+
+        # if there isn't an album id than there needs to be an album name
+        if not album_id and not album_name:
+            raise e.ValidationException('error','media must have album')
+
+        # must have a title!
+        if not title:
+            raise e.ValidationException('error','title required!')
+
+        # can't create a media entry w/o data!
+        if not ignore_file:
+            if (isinstance(file_data,list) and not file_data) or \
+               (not isinstance(file_data,list) and not file_data.filename):
+                print 'file_data:',file_data
+                raise e.ValidationException('error','must upload file!')
+
+        # we might be getting multiple files
+        if not isinstance(file_data,list):
+            file_data = [file_data]
+
+        # make sure we actually have files
+        if file_data:
+            file_data = [x for x in file_data if len(x.value) != 0]
+
+        # legit ratings only!
+        if rating and not rating.isdigit() or 0> int(rating) >5:
+            raise e.ValidationException('error','invalid rating!')
+
+
+        return file_data
 
     def __repr__(self):
         return '<Media "%s" %s">' % (self.title,self.type)

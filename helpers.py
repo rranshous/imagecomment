@@ -15,10 +15,22 @@ def add_flash(msg_type,msg=None):
         msg = msg_type
         msg_type = 'info'
 
+    cherrypy.log('flash: (%s) %s' % (msg_type,msg))
+
     cherrypy.session.setdefault(msg_type,[]).append(msg)
 
 def redirect(*args,**kwargs):
     raise HTTPRedirect(*args,**kwargs)
+
+def error(t=403):
+    raise HTTPError(t)
+
+def owner(o):
+    return o.user == cherrypy.request.user
+
+def owner_or_error(o):
+    if not owner(o):
+        error(403)
 
 def set_section():
     pieces = cherrypy.request.path_info.split('/')

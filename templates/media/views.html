@@ -31,7 +31,7 @@
 <%def name="media_links(m)">
     <div class="links">
         % if request.user == m.user:
-            <a href="/media/edit/${m.id}">edit</a>
+            <a href="/media/update/${m.id}">edit</a>
         % endif
     </div>
 </%def>
