@@ -1,3 +1,4 @@
+<%namespace file="/tags/views.html" name="t"/>
 
 <%def name="media_content(m,size=None)">
     % if m.extension.lower() in ('gif','jpeg','jpg','png'):
@@ -43,6 +44,7 @@
             ${media_content(m,size=size)}
         </div>
         ${c.large_view(m.comments)}
+        ${t.compact_list(m.tags)}
         ${c.add_form(m)}
         ${media_links(m)}
     </div>

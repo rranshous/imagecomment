@@ -245,9 +245,9 @@ class Media(BaseEntity):
         # tags can ride also
 
         # album id must be a valid album
-        if album_id is not None or '':
-            if not m.Album.get(album_id):
-                raise e.ValidationException('error','album not found!')
+        if album_id and not m.Album.get(album_id):
+            cherrypy.log('album_id: %s' % album_id)
+            raise e.ValidationException('error','album not found!')
 
         # if there isn't an album id than there needs to be an album name
         if not album_id and not album_name:
@@ -267,10 +267,6 @@ class Media(BaseEntity):
         # we might be getting multiple files
         if not isinstance(file_data,list):
             file_data = [file_data]
-
-        # make sure we actually have files
-        if file_data:
-            file_data = [x for x in file_data if len(x.value) != 0]
 
         # legit ratings only!
         if rating and not rating.isdigit() or 0> int(rating) >5:

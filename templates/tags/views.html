@@ -9,3 +9,15 @@
         </a>
     </div>
 </%def>
+
+<%def name="compact_list(tags)">
+    <div class="tag_list_compact">
+        % for tag in tags:
+        <div class="tag_block">
+            <a href="/tag/${tag.id}/">
+                ${tag.name}
+            </a>
+        </div>
+        % endfor
+    </div>
+</%def>

@@ -27,6 +27,8 @@ class Media:
         try:
             if action:
 
+                cherrypy.log('file_data: %s' % file_data)
+
                 # validate our form info
                 file_data = m.Media.validate_form_data(title,file_data,comment,rating,
                                                        tags,album_id,album_name)
@@ -131,18 +133,25 @@ class Media:
                 cherrypy.log('user: %s' % media.user)
 
                 # set the extension as the type
-                if file_data:
-                    cherrypy.log('content type: %s' % (file_data.type))
-                    media.type = str(file_data.type)
+                if file_data and file_data.file is not None:
 
-                    # add the filename
-                    if file_data.filename:
-                        ext = file_data.filename.rsplit('.',1)[-1]
-                        if ext:
-                            media.extension = ext
+                    # grab the file data
+                    data = file_data.file.read()
 
-                    # they uploaded a new photo save it down
-                    media.set_data(file_data.file.read())
+                    if len(data) >= 0:
+
+                        # they uploaded a new photo save it down
+                        media.set_data(data)
+
+                        cherrypy.log('content type: %s' % (file_data.type))
+                        media.type = str(file_data.type)
+
+                        # add the filename
+                        if file_data.filename:
+                            ext = file_data.filename.rsplit('.',1)[-1]
+                            if ext:
+                                media.extension = ext
+
 
                 # is there a comment for the photo?
                 comment = kwargs.get('comment')
