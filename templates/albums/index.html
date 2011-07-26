@@ -13,9 +13,9 @@ All the albums you can eat!
 
 % for a in albums:
     <p>
-        ${v.link(a)}<br/>
+        ${v.link(a)}
         % for media in a.media:
-        ${m.thumbnail(media,25)}
+        ${m.thumbnail(media,50)}
         % endfor
     </p>
 % endfor
