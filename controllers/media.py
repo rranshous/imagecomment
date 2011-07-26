@@ -95,7 +95,6 @@ class Media:
                     redirect('/media/%s' % media.id)
 
         except Exception, ex:
-            raise
             # woops, alert of error
             add_flash('error','%s' % ex)
 
@@ -243,7 +242,6 @@ class Media:
                     redirect('/media/')
 
         except Exception, ex:
-            raise
             # error!
             add_flash('error','%s' % ex)
 
