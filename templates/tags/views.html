@@ -3,15 +3,15 @@
 </%def>
 
 <%def name="compact(tag)">
-    <div class="tag_block">
+    <p class="tag_block">
         <a href="/tag/${tag.id}/">
             ${tag.name} (${len(tag.media)})
         </a>
-    </div>
+    </p>
 </%def>
 
 <%def name="compact_list(tags)">
-    <div class="tag_list_compact">
+    <p class="tag_list_compact">
         % for tag in tags:
         <div class="tag_block">
             <a href="/tag/${tag.id}/">
@@ -19,5 +19,5 @@
             </a>
         </div>
         % endfor
-    </div>
+    </p>
 </%def>
