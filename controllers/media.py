@@ -33,6 +33,8 @@ class Media:
                 file_data = m.Media.validate_form_data(title,file_data,comment,rating,
                                                        tags,album_id,album_name)
 
+                cherrypy.log('file_data: %s' % file_data)
+
                 for fd in file_data:
                     # create our new media
                     media = m.Media(title=title)

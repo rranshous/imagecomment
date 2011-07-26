@@ -14,6 +14,8 @@ ${album.name}
     .media_container, .media_block { display: inline; }
 </style>
 
+<h3>${album.name}</h3>
+
 % for media in album.media:
     ${m.thumbnail(media,200)}
 % endfor
