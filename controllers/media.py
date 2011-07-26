@@ -262,6 +262,12 @@ class Media:
             path = media.create_thumbnail(size)
         else:
             path = media.media_path
+            if not os.path.exists(path):
+                # fall back to the cdn if it exists
+                if media.cdn_media_path:
+                    redirect(media.cdn_media_path)
+                else:
+                    path = None
         cherrypy.log('path: %s' % path)
         if path and os.path.exists(path):
             return cherrypy.lib.static.serve_file(path,

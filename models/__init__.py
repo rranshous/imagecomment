@@ -131,7 +131,8 @@ class Media(BaseEntity):
     size = Field(Float)
     type = Field(Unicode(80))
     extension = Field(Unicode(10))
-    media_path = Field(UnicodeText)
+    media_path = Field(UnicodeText) # local path
+    cdn_media_path = Field(UnicodeText) # fallback path if not found locally
     created_at = Field(DateTime, default=datetime.datetime.now)
 
     comments = OneToMany('Comment')
