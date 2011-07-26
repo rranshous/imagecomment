@@ -94,7 +94,7 @@ class Media:
                 else:
                     redirect('/media/%s' % media.id)
 
-        except Exception, ex:
+        except e.ValidationException, ex:
             # woops, alert of error
             add_flash('error','%s' % ex)
 
@@ -267,7 +267,7 @@ class Media:
             return cherrypy.lib.static.serve_file(path,
                                                   name = filename)
         else:
-            return redirect('/img/no_thumbnail.gif')
+            redirect('/img/no_thumbnail.gif')
 
 
     @cherrypy.expose
