@@ -2,7 +2,8 @@
 
 <h3>Login - Looks like you're a new user</h3>
 <form action="/login" method="POST">
-    <label>${username}, what password would you like? <input type="password" name="password"></label>
+    <label>${username}, what password would you like?
+        <input type="password" name="password" autofocus></label>
     <input type="submit" name="action" value="Go"/>
     <input type="hidden" name="username" value="${username}"/>
     <input type="hidden" name="new_user" value="true"/>
