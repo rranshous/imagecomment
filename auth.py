@@ -1,8 +1,9 @@
 from elixir import metadata
 import models as m
 import cherrypy
-from helpers import error
+from helpers import error, redirect
 from decorator import decorator
+from cherrypy import HTTPError
 
 def get_user_passwords():
     users = m.User.query.all()
@@ -22,6 +23,9 @@ def set_user():
 def get_user_from_session():
     """ returns user found from session info """
     return m.User.get_by(handle=cherrypy.session.get('user_handle'))
+
+def get_user():
+    return get_user_from_session()
 
 def check_active_login():
     """
@@ -64,3 +68,17 @@ def logout_user():
 def public(f,*args,**kwargs):
     f._cp_config = {'cherrypy.tools.check_active_login.on':False}
     return f(*args,**kwargs)
+
+def public_redirect(new_url):
+    """ if the user isn't logged in pushes to another url """
+    def _public_redirect(f):
+        def __public_redirect(*args,**kwargs):
+            # check the login
+            try:
+                check_active_login()
+            except HTTPError:
+                redirect(new_url)
+
+            return f(*args,**kwargs)
+        return __public_redirect
+    return _public_redirect

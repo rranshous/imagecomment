@@ -5,7 +5,7 @@ from users import User
 from comments import Comment
 from albums import Album
 from helpers import render, redirect
-from auth import public
+from auth import public, logout_user, public_redirect
 
 class Root:
     """ sits @ The root of the app """
@@ -17,6 +17,7 @@ class Root:
     default = Media() # other than the above options it's media
 
     @cherrypy.expose
+    @public_redirect('/login')
     def index(self):
         """ login if not authed else the home page """
         return render('/index.html')
@@ -26,9 +27,8 @@ class Root:
     def login(self,username=None,password=None,action=None):
         """ prompts the user to login, creates the user if it doesn't exist """
 
-        # if they are already logged in than push to index
-        if cherrypy.request.user:
-            redirect('/')
+        # log them out
+        logout_user()
 
         # see if they are trying to login / create user
         if action:
@@ -41,7 +41,7 @@ class Root:
     @cherrypy.expose
     def logout(self):
         """ clear the sesion to logout the user """
-        cherrypy.lib.sessions.expire()
+        logout_user()
         redirect('/')
 
     @cherrypy.expose
