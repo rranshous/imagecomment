@@ -28,9 +28,6 @@ class Root:
                    new_user=None):
         """ prompts the user to login, creates the user if it doesn't exist """
 
-        # log them out
-        logout_user()
-
         # see if they are trying to login / create user
         if action and username or password:
 
