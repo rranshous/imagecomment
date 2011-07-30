@@ -29,7 +29,7 @@ def run():
     # go through the media which was updated
     # more than 20 min ago and upload to s3
 
-    top = datetime.now() - timedelta(minutes=2)
+    top = datetime.now() - timedelta(minutes=20)
     medias = m.Media.query.filter(m.Media.created_at<top).all()
 
     print 'medias: %s' % len(medias)
@@ -47,6 +47,12 @@ def run():
         s3_url = upload_to_s3(media.media_path)
         media.cdn_media_path = s3_url
 
+    # get rid of local file
+    os.unlink(media.media_path)
+    # get rid of the media path
+    media.media_path = None
+
+    # and save
     m.session.commit()
 
 def upload_to_s3(local_path):
