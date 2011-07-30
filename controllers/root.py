@@ -28,8 +28,10 @@ class Root:
                    new_user=None):
         """ prompts the user to login, creates the user if it doesn't exist """
 
+        cherrypy.log('login action: %s' % action)
+
         # see if they are trying to login / create user
-        if action and username or password:
+        if action or username or password:
 
             # if they didn't provide a password than we need to
             # either create a new user or prompt them for pass if one exists

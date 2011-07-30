@@ -5,6 +5,7 @@ from helpers import owner_or_error
 import lib.exceptions as e
 import os
 from sqlalchemy import or_
+from auth import public, logout_user, login_user
 
 class Media:
     @cherrypy.expose
@@ -249,6 +250,7 @@ class Media:
 
 
     @cherrypy.expose
+    @public
     def data(self,id,filename=None,size=None):
         """ returns the data for the media, only if your authed
             to view the media """
