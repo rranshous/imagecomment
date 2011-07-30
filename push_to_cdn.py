@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/python
 
 import models as m; m.setup()
 from datetime import datetime, timedelta
@@ -29,7 +29,7 @@ def run():
     # go through the media which was updated
     # more than 20 min ago and upload to s3
 
-    top = datetime.now() - timedelta(minutes=20)
+    top = datetime.now() - timedelta(minutes=2)
     medias = m.Media.query.filter(m.Media.created_at<top).all()
 
     print 'medias: %s' % len(medias)
@@ -47,13 +47,12 @@ def run():
         s3_url = upload_to_s3(media.media_path)
         media.cdn_media_path = s3_url
 
-    # get rid of local file
-    os.unlink(media.media_path)
-    # get rid of the media path
-    media.media_path = None
+        # get rid of local file
+        os.unlink(media.media_path)
+        # get rid of the media path
 
-    # and save
-    m.session.commit()
+        # and save
+        m.session.commit()
 
 def upload_to_s3(local_path):
     conn = connect_s3()
@@ -77,3 +76,6 @@ def get_s3_name(path):
     n.replace('_','')
     name = 'media/%s' % n
     return name
+
+if __name__ == '__main__':
+    run()

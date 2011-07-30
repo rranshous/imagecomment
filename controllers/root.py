@@ -62,6 +62,7 @@ class Root:
 
                 # or home
                 else:
+                    cherrypy.log('redirecting home')
                     redirect('/')
 
 

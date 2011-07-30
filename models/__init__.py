@@ -158,6 +158,13 @@ class Media(BaseEntity):
         cherrypy.log('adding_data: %s' % self.media_path)
         fh.write(data)
         fh.close()
+
+        # create a set of thumbnails up front
+        self.create_thumbnail(50)
+        self.create_thumbnail(200)
+        self.create_thumbnail(250)
+        self.create_thumbnail(800)
+
         return True
 
     def create_thumbnail(self,w,h='',overwrite=False):
