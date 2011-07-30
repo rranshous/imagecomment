@@ -7,3 +7,4 @@ syntax: glob
 *.PNG
 *.png
 media.db
+s3_creds.txt
