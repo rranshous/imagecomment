@@ -29,8 +29,8 @@ def run():
     # go through the media which was updated
     # more than 20 min ago and upload to s3
 
-    top = datetime.now() - timedelta(minutes=2)
-    medias = m.Media.query.filter(m.Media.created_at<top).all()
+    top = datetime.now() - timedelta(minutes=20)
+    medias = m.Media.query.filter(m.Media.created_at<top).filter(m.Media.cdn_media_path==None).all()
 
     print 'medias: %s' % len(medias)
 
