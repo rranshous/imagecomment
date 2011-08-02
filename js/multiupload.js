@@ -17,12 +17,14 @@ MultiUploader = function(config) {
     // when the form is initialized by this class
 
     this.ADD_SET_NAME = 'add_fieldset';
+    this.ADD_SET_CONTAINER_ID = 'add_fieldset_container';
     this.FIELD_CONTAINER_CLASS = 'multiupload_fieldset_container';
     this.FAILURE_MESSAGE = 'Upload Failed!';
     this.SUBMIT_MESSAGE = 'Uploading..';
 
 
     this.target_form = Ext.get(config.target_form);
+    console.log({target_form:this.target_form});
 
     this.init();
 
@@ -40,20 +42,39 @@ init: function() {
     var fieldset_container = Ext.DomHelper.append(Ext.getBody(),{
                                 tag:'div',
                                 style:'padding:0;margin:0;border:0;',
-                                class:this.FIELD_CONTAINER_CLASS
+                                cls:this.FIELD_CONTAINER_CLASS
                              },true);
+
+    var add_fieldset_container = Ext.get(this.ADD_SET_CONTAINER_ID);
+
+    console.log({fieldset_container:fieldset_container,
+                 add_fieldset_container:add_fieldset_container});
 
     // move everything (but add_fieldset button)
     // from the form into the new container
-    this.target_form.select('> *').each(function(el) {
+    var children = [];
+    var last;
+    divs = this.target_form.query('> div');
+    Ext.each(divs, (function(el) {
+        el = Ext.get(el);
+        console.log({el:el});
         try {
             var name = el.getAttribute('name');
+            console.log('name: '+name);
         } catch (err) { name = ''; }
-        if(name == this.ADD_SET_NAME) {
+        if(el.id == add_fieldset_container.id) {
+            console.log('add fieldset not copied');
             return;
         }
-        el.appendTo(fieldset_container);
-    });
+        if(Ext.isEmpty(last)) {
+            el.appendTo(fieldset_container);
+            last = el;
+        }
+        else {
+            el.insertAfter(last);
+            last = el;
+        }
+    }));
 
     fieldset_container.appendTo(this.target_form);
 
@@ -69,6 +90,9 @@ init: function() {
 },
 
 init_container: function(container) {
+
+    console.log({container:container});
+
     // we need to setup the add set and submit buttons
     // change the submit button to be an async submit
     console.log({container:container});
@@ -185,7 +209,7 @@ handle_response: function(options,success,response,container,temp_form) {
 copy_container: function(container,append_to) {
     // create a copy of the container passed
     // and append it to the second arg
-    container.select('*').each(function(el) { el.set({id:""}); },this);
+    container.select('> div').each(function(el) { el.set({id:""}); },this);
     var copy = Ext.get(container.dom.cloneNode(true));
     Ext.DomHelper.append(append_to,copy);
     copy = append_to.down(':last-child');

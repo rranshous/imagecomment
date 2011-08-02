@@ -1,3 +1,4 @@
+
 <%inherit file="/media/base.html"/>
 
 <%def name="page_name()">
@@ -63,11 +64,12 @@ Ext.onReady(function() {
         <label for="file_file_data">To Upload:</label>
         <input type="file" name="file_data" multiple="true"
                 id="file_file_data"/>
-    </div>
-    <div><input type="submit" value="Create" name="action"/></div>
+    <div>
+    <br>
+    <input type="submit" value="Create" name="action"/><br>
 
-    <div id="add_fieldset_container">
-        <button type="button" name="add_fieldset" value="ADD">ADD</button>
+    <div>
+        <button type="button" name="add_fieldset" value="+"/>
     </div>
 </form>
 
