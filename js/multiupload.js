@@ -1,5 +1,23 @@
 // create a class which can async upload files
 
+Ext.override(Ext.Element, {
+    cascade: function(fn,scope,args) {
+        if(fn.apply(scope || this.args || [this]) !== false) {
+            var cs = this.dom.childNodes;
+            var len = cs.len;
+            for(var i = 0; i < len; i++) {
+                Ext.get(cs[i]).cascade(fn, scope, args);
+            }
+        }
+    },
+    clone: function() {
+        var result = this.el.dom.cloneNode(true);
+        result.id = Ext.id();
+        result = Ext.get(result);
+        result.cascade(function(e){e.id = Ext.id();});
+    }
+});
+
 MultiUploader = function(config) {
 
     // the target form should contain the fields for
@@ -18,13 +36,11 @@ MultiUploader = function(config) {
 
     this.ADD_SET_NAME = 'add_fieldset';
     this.ADD_SET_CONTAINER_ID = 'add_fieldset_container';
-    this.FIELD_CONTAINER_CLASS = 'multiupload_fieldset_container';
+    this.FIELD_CONTAINER_CLASS = 'form_container';
     this.FAILURE_MESSAGE = 'Upload Failed!';
     this.SUBMIT_MESSAGE = 'Uploading..';
 
-
     this.target_form = Ext.get(config.target_form);
-    console.log({target_form:this.target_form});
 
     this.init();
 
@@ -37,74 +53,31 @@ init: function() {
     // remapping the submit button to async submit
     // wrapping the fields in a div so that we can create field
     // sets
-
-    // create our fieldset container
-    var fieldset_container = Ext.DomHelper.append(Ext.getBody(),{
-                                tag:'div',
-                                style:'padding:0;margin:0;border:0;',
-                                cls:this.FIELD_CONTAINER_CLASS
-                             },true);
-
-    var add_fieldset_container = Ext.get(this.ADD_SET_CONTAINER_ID);
-
-    console.log({fieldset_container:fieldset_container,
-                 add_fieldset_container:add_fieldset_container});
-
-    // move everything (but add_fieldset button)
-    // from the form into the new container
-    var children = [];
-    var last;
-    divs = this.target_form.query('> div');
-    Ext.each(divs, (function(el) {
-        el = Ext.get(el);
-        console.log({el:el});
-        try {
-            var name = el.getAttribute('name');
-            console.log('name: '+name);
-        } catch (err) { name = ''; }
-        if(el.id == add_fieldset_container.id) {
-            console.log('add fieldset not copied');
-            return;
-        }
-        if(Ext.isEmpty(last)) {
-            el.appendTo(fieldset_container);
-            last = el;
-        }
-        else {
-            el.insertAfter(last);
-            last = el;
-        }
-    }));
-
-    fieldset_container.appendTo(this.target_form);
+    //
+    
+    // grab the div containing the fields in the form
+    this.form_container = Ext.get(Ext.query('.'+this.FIELD_CONTAINER_CLASS)[0]);
+    this.form_container.dom.id = null;
 
     // create an hidden copy of the container for replication later
-    this.container_template = this.copy_container(fieldset_container,
-                                                  Ext.getBody());
-    this.container_template.setVisibilityMode(Ext.Element.DISPLAY);
-    this.container_template.hide();
-    console.log({template:this.container_template,container:fieldset_container});
-
-    // initialize the container's action buttons
-    this.init_container(fieldset_container);
-},
-
-init_container: function(container) {
-
-    console.log({container:container});
-
-    // we need to setup the add set and submit buttons
-    // change the submit button to be an async submit
-    console.log({container:container});
-    var submit_button = container.down('input[type=submit]');
-    if(!submit_button) {
-        submit_button = container.down('button[type=submit]');
-    }
-    this.wrap_submit(container.down('input[type=submit]'),container);
+    this.container_template = this.form_container.dom.cloneNode(true);
+    console.log({container_template:this.container_template});
 
     // update the add set button so that when clicked it
     // inserts another field set
-    this.wrap_add_set(container.down('button[name=add_fieldset]'));
+    var add_container = Ext.get('add_fieldset_container');
+    var add_container_button = Ext.get(add_container.down('button'));
+    this.wrap_add_set(add_container_button);
+
+    // we need to setup the add set and submit buttons
+    // change the submit button to be an async submit
+    var submit_button = Ext.get(this.form_container.query('input[type=submit]')[0]);
+    if(Ext.isEmpty(submit_button)) {
+        submit_button = this.form_container.down('button[type=submit]');
+    }
+    console.log({submit_button:submit_button});
+    this.wrap_submit(submit_button,this.form_container);
+
 },
 
 wrap_add_set: function(button) {
@@ -115,14 +88,9 @@ wrap_add_set: function(button) {
 },
 
 add_set: function() {
-    // create a new set copy. we are going to copy the container
-    // template into the form
-    var copy = this.copy_container(this.container_template);
-
-    // it also copies the fact that the template is hidden
-    copy.show();
-
-    return copy
+    var new_node = this.form_container.appendChild(this.container_template);
+    this.container_template = new_node.dom.cloneNode(true);
+    return new_node;
 },
 
 wrap_submit: function(button,container) {
@@ -204,17 +172,6 @@ handle_response: function(options,success,response,container,temp_form) {
            },this);
         }).defer(3000,this);
     }
-},
-
-copy_container: function(container,append_to) {
-    // create a copy of the container passed
-    // and append it to the second arg
-    container.select('> div').each(function(el) { el.set({id:""}); },this);
-    var copy = Ext.get(container.dom.cloneNode(true));
-    Ext.DomHelper.append(append_to,copy);
-    copy = append_to.down(':last-child');
-    console.log({container:container,copy:copy})
-    return copy;
 }
 
 };
