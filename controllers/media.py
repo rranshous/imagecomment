@@ -89,6 +89,10 @@ class Media:
                 # let our user know it worked
                 add_flash('info','New media successfully created!')
 
+                # if it's a multi upload than we don't want to redirect
+                if multi:
+                    return '1'
+
                 # send them to the new media's page
                 if album_name:
                     redirect('/album/%s' % album.id)

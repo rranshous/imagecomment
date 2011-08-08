@@ -100,9 +100,9 @@ wrap_submit: function(button,container) {
     // it instead calls our method which will submit it async
     button.removeAllListeners();
     button.on('click',
-              this.async_submit.createCallback(container),
+              this.async_submit.createDelegate(this,[container]),
               this,
-              {preventDefault:true,stopPropagation:true,buffer:10});
+              {stopEvent:true,preventDefault:true,stopPropagation:true,buffer:10});
 },
 
 
@@ -112,7 +112,6 @@ async_submit: function(container) {
     // the contents of the container into the hidden form while putting
     // a processing message in the container. submit the new form,
     // adding the response to our request to the container
-
 
     // get the forms method / action / encoding
     var form = container.parent('form');
@@ -134,6 +133,8 @@ async_submit: function(container) {
 
     // update our container w/ the submit message
     container.update(this.SUBMIT_MESSAGE);
+
+    return;
 
     // submit our ajax request
     Ext.Ajax.request({
