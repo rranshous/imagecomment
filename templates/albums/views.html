@@ -19,3 +19,12 @@
 <%def name="link(a)">
     <a href="/album/${a.id}/">${a.name}</a>
 </%def>
+
+<%def name="picture_link(a,size=250)">
+    <a href="/album/${a.id}/">
+        % if a.media:
+        <img src="/media/data/${a.media[0].id}?size=${size}"/><br/>
+        % endif
+        ${a.name}
+    </a>
+</%def>

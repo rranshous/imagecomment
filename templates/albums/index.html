@@ -12,10 +12,7 @@ All the albums you can eat!
 <%namespace file="/albums/views.html" name="v"/>
 
 % for a in albums:
-    <p>
-        ${v.link(a)}
-        % for media in a.media:
-        ${m.thumbnail(media,50)}
-        % endfor
+    <p style="display: block">
+        ${v.picture_link(a)}
     </p>
 % endfor

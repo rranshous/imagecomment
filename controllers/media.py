@@ -1,7 +1,7 @@
 import cherrypy
 import models as m
 from helpers import render, add_flash, redirect
-from helpers import owner_or_error
+from helpers import owner_or_error, error
 import lib.exceptions as e
 import os
 from sqlalchemy import or_
@@ -279,8 +279,7 @@ class Media:
             return cherrypy.lib.static.serve_file(path,
                                                   name = filename)
         else:
-            redirect('/img/no_thumbnail.gif')
-
+            error(404)
 
     @cherrypy.expose
     def default(self,id):
