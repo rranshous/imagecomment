@@ -10,8 +10,8 @@
     % endif
 </%def>
 
-<%def name="link(m)">
-    <a href="/media/${m.id}">${m.title}</a>
+<%def name="link(m,text=None)">
+    <a href="/media/${m.id}">${text or m.title}</a>
 </%def>
 
 

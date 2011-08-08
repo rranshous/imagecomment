@@ -8,6 +8,7 @@ class Album:
     @cherrypy.expose
     def index(self):
         albums = m.Album.query.order_by(m.Album.created_at.desc()).all()
+        cherrypy.session['current_albums'] = [i.id for i in albums]
         return render('/albums/index.html',albums=albums)
 
     @cherrypy.expose
@@ -23,5 +24,7 @@ class Album:
 
         if not albums:
             add_flash('error','album not found!')
+
+        cherrypy.session['current_albums'] = [i.id for i in albums]
 
         return render('/albums/single.html',album=albums[0])

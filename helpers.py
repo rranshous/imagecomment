@@ -15,8 +15,6 @@ def add_flash(msg_type,msg=None):
         msg = msg_type
         msg_type = 'info'
 
-    cherrypy.log('flash: (%s) %s' % (msg_type,msg))
-
     cherrypy.session.setdefault(msg_type,[]).append(msg)
 
 def redirect(*args,**kwargs):
@@ -35,7 +33,6 @@ def owner_or_error(o):
 def set_section():
     pieces = cherrypy.request.path_info.split('/')
     cherrypy.request.section_name = pieces[1]
-    cherrypy.log('section_name: %s' % pieces[1])
     if len(pieces) > 2:
         cherrypy.request.subsection_name = pieces[2]
     else:

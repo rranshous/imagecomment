@@ -28,13 +28,9 @@ class Media:
         try:
             if action:
 
-                cherrypy.log('file_data: %s' % file_data)
-
                 # validate our form info
                 file_data = m.Media.validate_form_data(title,file_data,comment,rating,
                                                        tags,album_id,album_name)
-
-                cherrypy.log('file_data: %s' % file_data)
 
                 for fd in file_data:
                     # create our new media
@@ -42,10 +38,8 @@ class Media:
 
                     # who uploaded this?
                     media.user = cherrypy.request.user
-                    cherrypy.log('user: %s' % media.user)
 
                     # set the extension as the type
-                    cherrypy.log('content type: %s' % (fd.type))
                     media.type = str(fd.type)
 
                     # add the filename
@@ -129,14 +123,12 @@ class Media:
                 # we need to validate our form data
                 file_data = m.Media.validate_form_data(ignore_file=True,**kwargs)
                 if file_data:
-                    cherrypy.log('file_data: %s' % file_data)
                     file_data = file_data[0]
 
                 # now we update our object
 
                 # who uploaded this?
                 media.user = cherrypy.request.user
-                cherrypy.log('user: %s' % media.user)
 
                 # set the extension as the type
                 if file_data and file_data.file is not None:
@@ -149,7 +141,6 @@ class Media:
                         # they uploaded a new photo save it down
                         media.set_data(data)
 
-                        cherrypy.log('content type: %s' % (file_data.type))
                         media.type = str(file_data.type)
 
                         # add the filename
@@ -191,7 +182,6 @@ class Media:
                 # new name
                 album_id = kwargs.get('album_id')
                 album_name = kwargs.get('album_name')
-                cherrypy.log('album: %s:%s' % (album_id,album_name))
                 if album_id or album_name:
                     if album_id:
                         album = m.Album.get(album_id)
@@ -219,16 +209,12 @@ class Media:
         except e.ValidationException, ex:
             add_flash('error','%s' % ex)
 
-        cherrypy.log('rendering media edit: %s' % media)
-
         return render('media/edit.html',media=media)
 
 
     @cherrypy.expose
     def delete(self,media_id=[],action=None,confirmed=False):
         """ delete this media, only allowed by media owner """
-        cherrypy.log('media_id: %s' % media_id)
-        cherrypy.log('confirmed: %s' % confirmed)
         try:
             found = []
             if not media_id:
@@ -258,27 +244,29 @@ class Media:
     def data(self,id,filename=None,size=None):
         """ returns the data for the media, only if your authed
             to view the media """
-        media = m.Media.get(id)
-        if not media:
-            raise cherrypy.HTTPError(404)
-        if not filename:
-            filename = media.get_safe_title()
-        cherrypy.log('media_path: %s'%media.media_path)
-        if size:
-            path = media.create_thumbnail(size)
-        else:
-            path = media.media_path
-            if not os.path.exists(path):
-                # fall back to the cdn if it exists
-                if media.cdn_media_path:
-                    redirect(media.cdn_media_path)
-                else:
-                    path = None
-        cherrypy.log('path: %s' % path)
-        if path and os.path.exists(path):
-            return cherrypy.lib.static.serve_file(path,
-                                                  name = filename)
-        else:
+
+        try:
+            media = m.Media.get(id)
+            if not media:
+                raise cherrypy.HTTPError(404)
+            if not filename:
+                filename = media.get_safe_title()
+            if size:
+                path = media.create_thumbnail(size)
+            else:
+                path = media.media_path
+                if not os.path.exists(path):
+                    # fall back to the cdn if it exists
+                    if media.cdn_media_path:
+                        redirect(media.cdn_media_path)
+                    else:
+                        path = None
+            if path and os.path.exists(path):
+                return cherrypy.lib.static.serve_file(path,
+                                                      name = filename)
+            else:
+                error(404)
+        except Exception:
             error(404)
 
     @cherrypy.expose
@@ -288,13 +276,30 @@ class Media:
             media = m.Media.get(id)
             if not media:
                 raise e.ValidationException('Media not found')
-        except ValidationException, ex:
+
+            next = None
+            prev = None
+
+            album_ids = cherrypy.session.get('current_albums',None)
+
+            # grab the next and previous media if browing an album
+            if album_ids:
+                next = m.Media.query.join('albums') \
+                                    .filter(m.Album.id.in_(album_ids)) \
+                                    .filter(m.Media.id > media.id) \
+                                    .order_by(m.Media.id.asc()).first()
+
+                prev = m.Media.query.join('albums') \
+                                     .filter(m.Album.id.in_(album_ids)) \
+                                     .filter(m.Media.id < media.id) \
+                                     .order_by(m.Media.id.desc()).first()
+
+        except e.ValidationException, ex:
             add_flash('error','%s' % ex)
 
         cherrypy.log('media: %s' % media)
 
-
-        return render('/media/single.html',media=media)
+        return render('/media/single.html',media=media,next=next,prev=prev)
 
 
     @cherrypy.expose
@@ -319,7 +324,6 @@ class Media:
 
                 # whaaa, no media?
                 if not media:
-                    cherrypy.log('flashing')
                     add_flash('error','media appears to be awol!')
         except ValidationException, ex:
             add_flash('error','%s' % ex)

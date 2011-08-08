@@ -28,7 +28,6 @@ class Root:
                    new_user=None):
         """ prompts the user to login, creates the user if it doesn't exist """
 
-        cherrypy.log('login action: %s' % action)
 
         # see if they are trying to login / create user
         if action or username or password:
@@ -56,7 +55,6 @@ class Root:
                 add_flash('error','Your login has failed!')
 
             else:
-                cherrypy.log('successfull login: %s' % username)
 
                 # yay, success. push them to their next point
                 if endpoint:
@@ -64,7 +62,6 @@ class Root:
 
                 # or home
                 else:
-                    cherrypy.log('redirecting home')
                     redirect('/')
 
 

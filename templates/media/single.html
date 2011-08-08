@@ -37,10 +37,19 @@
     .comment .rating { font-size: .5em; }
     .comment .handle { font-size: .8em; }
     form.add_comment { margin-top: 20px; }
+    .nav { margin-bottom: 10px; }
 </style>
 
 
 
 % if media:
+    <div class="nav">
+        % if prev:   
+        <span class="prev">${m.link(prev,'<-Prev')}</span>
+        % endif
+        % if next:
+        <span class="next">${m.link(next,'Next->')}</span>
+        % endif
+    </div>
     ${m.large_view(media,800)}
 % endif
