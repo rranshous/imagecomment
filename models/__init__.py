@@ -167,10 +167,10 @@ class Media(BaseEntity):
         fh.close()
 
         # create a set of thumbnails up front
-        #self.create_thumbnail(50)
-        #self.create_thumbnail(200)
-        #self.create_thumbnail(250)
-        #self.create_thumbnail(800)
+        self.create_thumbnail(50)
+        self.create_thumbnail(200)
+        self.create_thumbnail(250)
+        self.create_thumbnail(800)
 
         return True
 
