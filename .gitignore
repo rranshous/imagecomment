@@ -8,3 +8,4 @@ syntax: glob
 *.png
 media.db
 s3_creds.txt
+mysql_creds.txt
