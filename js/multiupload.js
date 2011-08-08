@@ -1,22 +1,5 @@
 // create a class which can async upload files
 
-Ext.override(Ext.Element, {
-    cascade: function(fn,scope,args) {
-        if(fn.apply(scope || this.args || [this]) !== false) {
-            var cs = this.dom.childNodes;
-            var len = cs.len;
-            for(var i = 0; i < len; i++) {
-                Ext.get(cs[i]).cascade(fn, scope, args);
-            }
-        }
-    },
-    clone: function() {
-        var result = this.el.dom.cloneNode(true);
-        result.id = Ext.id();
-        result = Ext.get(result);
-        result.cascade(function(e){e.id = Ext.id();});
-    }
-});
 
 MultiUploader = function(config) {
 
