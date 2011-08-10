@@ -13,6 +13,9 @@ Upload Images
     #create_media select, #create_media input {
         width: 185px;
     }
+    #upload_note {
+        font-size: .7em;
+    }
 </style>
 
 <form id="create_media"
@@ -50,6 +53,14 @@ Upload Images
         <input type="file" name="file_data"
             id="file_file_data" multiple/>
     </div>
+    <p id="upload_note">
+        It <u>is</u> possible to upload more than one photo at a time.
+        If you are using a newer browser you will be able to select
+        multiple files at a time while choosing a photo. All the photos
+        you select will be uploaded with the same title, comment, album
+        and rating. It is not advisable to try and upload more than 30
+        photos at a time.
+    </p>
     <br/>
     <input type="submit" value="Create" name="action"/><br>
 </form>
