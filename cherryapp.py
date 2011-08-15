@@ -6,13 +6,12 @@ import logging as log
 import models as m
 import controllers as c
 
-
-if __name__ == "__main__":
+def setup():
     # setup the db connection
     m.setup()
 
     # create our app from root
-    app = cherrypy.Application(c.Root())
+    app = cherrypy.Application(c.Root(), config='./cherryconfig.ini')
 
     # setup a tool to rset our db session
     cherrypy.tools.reset_db = cherrypy.Tool('on_end_resource',
@@ -29,6 +28,11 @@ if __name__ == "__main__":
     # set values on the request object for what section / subsection
     cherrypy.tools.set_section = cherrypy.Tool('before_handler', set_section)
 
-    # get this thing hosted
-    cherrypy.quickstart(app, config='cherryconfig.ini')
+    return app
 
+
+if __name__ == "__main__":
+    app = setup()
+
+    # get this thing hosted
+    cherrypy.quickstart(app)
