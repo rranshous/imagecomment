@@ -8,6 +8,10 @@ import os
 from subprocess import call
 import lib.exceptions as e
 
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+from boto.s3.bucket import Bucket
+
 ## helper functions ##
 def add_tag_by_name(self,name):
     tag = Tag.get_by(name=name)
@@ -40,6 +44,208 @@ def setup():
     setup_all()
 
 ## end helper functions ##
+
+
+
+
+
+### helper classess #####
+
+class Data(BaseEntity):
+    """
+    obj for describing the attributes of data stored
+    via the data helper
+    """
+    size = Field(Float) # in bytes
+    data_hash = Field(Text)
+    label = Field(Text)
+    obj = ManyToOne('DataHelper')
+
+    def set_data(self,data):
+        self.size = len(data)
+        self.data_hash = self.generate_hash(data)
+
+    def get_data(self):
+        pass
+
+    def compare_data(self,data):
+        """
+        returns true if you passed the same data as this
+        is refering to already
+        """
+        return self.generate_hash(data) == self.data_hash:
+
+    @classmethod
+    def generate_hash(cls,data):
+        """
+        returns the unique id of the passed data
+        """
+
+        # we are going to hash the data to name it, that way repeat
+        # data isn't duplicated. Need to be careful when deleting
+        # data
+        md5 = hashlib.md5()
+        md5.update(data)
+        unique = md5.hexdigest()
+        return unique
+
+
+class S3Data(Data):
+
+    s3_key = Field(UnicodeText)
+
+    def set_data(self,data):
+        super(S3Data,self).set_data(data)
+
+        # upload the data to s3
+        key = self.get_new_key()
+
+        # TODO: pass our computed hashes so it doesnt re-hash
+        key.set_contents_from_string(data)
+
+        # save it's key
+        self.s3_key = key.key
+
+        return True
+
+    def get_data(self):
+        key = self.get_key()
+        return key.get_contents_as_string()
+
+    def get_bucket(conn):
+        if not hasattr(self,'s3_bucket') or not self.s3_bucket:
+            self.s3_bucket = Bucket(connection=self.conn,
+                                    name=cherrypy.config.get('s3_bucket_name'))
+        return self.s3_bucket
+
+    def connect_s3():
+        if not hasattr(self,'s3_conn') or not self.s3_conn:
+            self.conn = cherrypy.config.get('s3_secret'))
+        return self.conn
+
+    def get_key(self):
+        conn = self.connect_s3()
+        bucket = self.get_bucket(conn)
+        key = Key(bucket)
+        return key
+
+
+class MemcacheData(Data):
+    pass
+
+class DriveData(Data):
+    """
+    Info on data stored by the DriveDataHelper
+    """
+    path = Field(UnicodeText)
+
+    def set_data(self,data):
+        """
+        set the file data
+        """
+
+        # respect ur rents
+        super(DriveData,self).set_data(data)
+
+        # now we need to save it to the disk
+        # use it's hash to save it down, that way repeat data
+        # will not be repeated in storage
+        path = os.path.join(cherrypy.config.get('media_root'),
+                            self.data_hash)
+
+        with open(out_path,'wb') as fh:
+            fh.write(data)
+            fh.close()
+            self.path = path
+
+        return True
+
+    def get_data(self):
+        """
+        return the file data
+        """
+
+        if not self.path or not os.path.exists(self.path):
+            return None
+
+        with open(self.path,'r') as fh:
+            return fh.read()
+
+
+class DataHelper(BaseEntity):
+    """
+    to be subclassed. facilitates setting / getting obj data.
+    Data can be set or got by label, not name. For example
+    a media obj may have source image as well as thumbnail.
+    you could set the default data as the source image data
+    and than the thumbnail datas as 'thumbnail_[size]' label.
+    """
+
+    datas_info = OneToMany('Data')
+    DATA_TYPE = None
+
+    def set_data(self,file_data,label='default'):
+        """
+        sets the obj's data w/ the given label. If it is already
+        set the old data will be lost and the new data will be set
+        """
+        # try and find existing info
+        data = self.find_data(label)
+
+        # check and see if the info is for the same data
+        if not data.compare_data(file_data):
+
+            # they are not the same data, we need to create
+            # a new info for our data
+            data = self.DATA_TYPE(label=label)
+            data.set_data(file_data)
+
+        return data
+
+    def get_data(self,label='default'):
+        """
+        gets the obj's data. If no data is found returns None.
+        """
+
+        # find the data
+        data = self.find_data(label)
+
+        # if we didn't find it return none
+        if not data:
+            return None
+
+        # return the data
+        return info.get_data()
+
+    def find_data(self,label):
+        """
+        returns the Data for this obj by the given label
+        """
+        return self.DATA_TYPE.query.\
+                             filter(self.DATA_TYPE.obj==self).\
+                             filter(self.DATA_TYPE.label==label).\
+                             first()
+
+
+class S3DataHelper(DataHelper):
+    """
+    data helper which stores / gets it's data from s3
+    """
+    DATA_TYPE = S3Data
+
+class DriveDataHelper(DataHelper):
+    """
+    data helper which sets / gets it's data from the local hard drive
+    """
+    DATA_TYPE = DriveData
+
+class MemcacheDataHelper(DataHelper):
+    """
+    data helper which sets / gets from memcache
+    """
+    DATA_TYPE = MemcacheData
+
+##########################
 
 # for now
 BaseEntity = Entity
