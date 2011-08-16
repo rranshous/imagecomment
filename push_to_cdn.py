@@ -44,8 +44,9 @@ def run():
             # woops
             continue
 
-        s3_url = upload_to_s3(media.media_path)
+        key, s3_url = upload_to_s3(media.media_path)
         media.cdn_media_path = s3_url
+        media.s3_key = key
 
         # get rid of local file
         os.unlink(media.media_path)
@@ -69,7 +70,7 @@ def upload_to_s3(local_path):
 
     s3_url = 'https://s3.amazonaws.com/ranshousweddingphotos/%s' % key.key
 
-    return s3_url
+    return (key.key, s3_url)
 
 def get_s3_name(path):
     n = os.path.basename(path)

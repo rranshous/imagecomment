@@ -140,6 +140,7 @@ class Media(BaseEntity):
     extension = Field(Unicode(10))
     media_path = Field(UnicodeText) # local path
     cdn_media_path = Field(UnicodeText) # fallback path if not found locally
+    s3_key = Field(UnicodeText) # key to the file in the s3 bucket
     created_at = Field(DateTime, default=datetime.datetime.now)
 
     comments = OneToMany('Comment')
