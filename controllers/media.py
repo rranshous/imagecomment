@@ -6,6 +6,8 @@ import lib.exceptions as e
 import os
 from sqlalchemy import or_
 from auth import public, logout_user, login_user
+import mimetypes
+mimetypes.init()
 
 class Media:
     @cherrypy.expose
@@ -244,7 +246,7 @@ class Media:
     def data(self,id,filename=None,size=None):
         """ returns the data for the media, only if your authed
             to view the media """
-
+        cherrypy.log('getting media data: %s' % id)
         try:
             media = m.Media.get(id)
             if not media:
@@ -252,21 +254,20 @@ class Media:
             if not filename:
                 filename = media.get_safe_title()
             if size:
-                path = media.create_thumbnail(size)
+                data = media.create_thumbnail(size)
             else:
-                path = media.media_path
-                if not os.path.exists(path):
-                    # fall back to the cdn if it exists
-                    if media.cdn_media_path:
-                        redirect(media.cdn_media_path)
-                    else:
-                        path = None
-            if path and os.path.exists(path):
-                return cherrypy.lib.static.serve_file(path,
-                                                      name = filename)
-            else:
+                data = media.get_data()
+
+            if not data:
                 error(404)
+
+            ext = media.extension.lower() if media.extension else None
+            content_type = mimetypes.types_map.get(ext,None)
+            cherrypy.response.headers['Content-Type'] = content_type or 'image/jpg'
+
+            return data
         except Exception:
+            raise
             error(404)
 
     @cherrypy.expose

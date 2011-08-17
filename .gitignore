@@ -9,3 +9,4 @@ syntax: glob
 media.db
 s3_creds.txt
 mysql_creds.txt
+/media

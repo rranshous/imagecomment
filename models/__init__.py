@@ -1,12 +1,14 @@
 from elixir import *
 import datetime
 import cherrypy
-from hashlib import sha1
+from hashlib import sha1, md5
 from tempfile import NamedTemporaryFile
 import models as m
 import os
 from subprocess import call
 import lib.exceptions as e
+from cStringIO import StringIO
+from PIL import Image
 
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -49,7 +51,8 @@ def setup():
 
 
 
-### helper classess #####
+# for now
+BaseEntity = Entity
 
 class Data(BaseEntity):
     """
@@ -63,7 +66,9 @@ class Data(BaseEntity):
 
     def set_data(self,data):
         self.size = len(data)
+        cherrypy.log('set_data size: %s' % self.size)
         self.data_hash = self.generate_hash(data)
+        cherrypy.log('set_data hash: %s' % self.data_hash)
 
     def get_data(self):
         pass
@@ -73,7 +78,7 @@ class Data(BaseEntity):
         returns true if you passed the same data as this
         is refering to already
         """
-        return self.generate_hash(data) == self.data_hash:
+        return self.generate_hash(data) == self.data_hash
 
     @classmethod
     def generate_hash(cls,data):
@@ -84,9 +89,9 @@ class Data(BaseEntity):
         # we are going to hash the data to name it, that way repeat
         # data isn't duplicated. Need to be careful when deleting
         # data
-        md5 = hashlib.md5()
-        md5.update(data)
-        unique = md5.hexdigest()
+        h = md5()
+        h.update(data)
+        unique = h.hexdigest()
         return unique
 
 
@@ -120,7 +125,7 @@ class S3Data(Data):
 
     def connect_s3():
         if not hasattr(self,'s3_conn') or not self.s3_conn:
-            self.conn = cherrypy.config.get('s3_secret'))
+            self.conn = cherrypy.config.get('s3_secret')
         return self.conn
 
     def get_key(self):
@@ -145,7 +150,7 @@ class DriveData(Data):
         """
 
         # respect ur rents
-        super(DriveData,self).set_data(data)
+        Data.set_data(self,data)
 
         # now we need to save it to the disk
         # use it's hash to save it down, that way repeat data
@@ -153,7 +158,8 @@ class DriveData(Data):
         path = os.path.join(cherrypy.config.get('media_root'),
                             self.data_hash)
 
-        with open(out_path,'wb') as fh:
+        with open(path,'wb') as fh:
+            cherrypy.log('set_data writing: %s' % path)
             fh.write(data)
             fh.close()
             self.path = path
@@ -165,8 +171,13 @@ class DriveData(Data):
         return the file data
         """
 
+        cherrypy.log('get_data')
+
         if not self.path or not os.path.exists(self.path):
+            cherrypy.log('get_data path not found')
             return None
+
+        cherrypy.log('get_data: %s' % self.path)
 
         with open(self.path,'r') as fh:
             return fh.read()
@@ -193,11 +204,11 @@ class DataHelper(BaseEntity):
         data = self.find_data(label)
 
         # check and see if the info is for the same data
-        if not data.compare_data(file_data):
+        if not data or not data.compare_data(file_data):
 
             # they are not the same data, we need to create
             # a new info for our data
-            data = self.DATA_TYPE(label=label)
+            data = self.DATA_TYPE(label=label,obj=self)
             data.set_data(file_data)
 
         return data
@@ -212,10 +223,11 @@ class DataHelper(BaseEntity):
 
         # if we didn't find it return none
         if not data:
+            cherrypy.log('did not find data entry')
             return None
 
         # return the data
-        return info.get_data()
+        return data.get_data()
 
     def find_data(self,label):
         """
@@ -245,10 +257,7 @@ class MemcacheDataHelper(DataHelper):
     """
     DATA_TYPE = MemcacheData
 
-##########################
 
-# for now
-BaseEntity = Entity
 
 class User(BaseEntity):
     using_options(tablename='users')
@@ -337,7 +346,7 @@ class Comment(BaseEntity):
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(BaseEntity):
+class Media(DriveDataHelper):
     using_options(tablename='media')
 
     title = Field(Unicode(100))
@@ -356,37 +365,19 @@ class Media(BaseEntity):
 
     add_tag_by_name = add_tag_by_name
 
-    def set_data(self,data):
-        # we are going to update our data file
-        self.size = len(data)
-        cherrypy.log('setting data: %s' % len(data))
-        if not self.media_path:
-            t = NamedTemporaryFile(delete=False,
-                                   dir=cherrypy.config.get('media_root'),
-                                   suffix='.%s'%self.extension,
-                                   prefix='media_')
-            fh = t.file
-            self.media_path = os.path.abspath(t.name)
-        else:
-            fh = file(self.media_path,'wb')
-        cherrypy.log('adding_data: %s' % self.media_path)
-        fh.write(data)
-        fh.close()
+    #def get_data(self,label='default'):
+        # we are going call the helper's get
+        # data that we over rode until we find one
+        # that has our data
 
-        # create a set of thumbnails up front
-        self.create_thumbnail(50)
-        self.create_thumbnail(200)
-        self.create_thumbnail(250)
-        self.create_thumbnail(800)
 
-        return True
+    #def set_data(self,data,label='default'):
 
     def create_thumbnail(self,w,h='',overwrite=False):
-        """ creats a thumbnail of the image @ the given size,
-            writes the thumbnail to the drive w/ size as
-            the prefix """
-
+        cherrypy.log('creating thumbnail')
         if self.is_image():
+
+            # figure out it's dimensions
             w,h = map(str,(w,h))
             if not h:
                 h = w
@@ -394,24 +385,42 @@ class Media(BaseEntity):
                 size = w
             else:
                 size = '%sx%s' % (w,h)
-            file_name = os.path.basename(self.media_path)
-            thumbnail_root = cherrypy.config.get('thumbnail_root')
-            out_path = os.path.join(thumbnail_root,
-                                    '%s_%s' % (size,file_name))
-            out_path = os.path.abspath(out_path)
-            media_path = os.path.abspath(self.media_path)
-            if os.path.exists(out_path) and not overwrite:
-                cherrypy.log('thumbnail exists')
-                return out_path
 
-            cmd = ['convert','-thumbnail',size,self.media_path,out_path]
-            cherrypy.log('cmd: %s' % cmd)
-            r = call(cmd) # TODO check return code
-            cherrypy.log('r: %s' % r)
-            cherrypy.log('out path: %s' % out_path)
-            return out_path
+            size_tuple = int(w), int(h) if h else None
 
-        return None
+            cherrypy.log('creating thumbnail: %s:%s' % size_tuple)
+
+            # label pattern for retrieving the data
+            data_label = 'thumbnail_%s' % size
+
+            # try and get the data
+            data = self.get_data(data_label)
+
+            if data:
+                # easy peasy
+                return data
+
+            cherrypy.log('thumnail does not exist')
+
+            # woops didn't find the data for the thumbnail, we'll gen one
+            source_data = self.get_data()
+            if not source_data:
+                raise e.ValidationException('Data for media not found')
+
+            # create our thumbnail
+            data_buffer = StringIO(source_data)
+            image = Image.open(data_buffer)
+            image.thumbnail(size_tuple, Image.ANTIALIAS)
+            data_buffer.close()
+            out_buffer = StringIO()
+            image.save(out_buffer, format='JPEG')
+            thumbnail_data = out_buffer.getvalue()
+            out_buffer.close()
+
+            # save it's data for later
+            self.set_data(thumbnail_data,data_label)
+
+            return thumbnail_data
 
     @classmethod
     def get_random_path(cls):
