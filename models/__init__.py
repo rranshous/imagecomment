@@ -102,8 +102,12 @@ class S3Data(Data):
     def set_data(self,data):
         super(S3Data,self).set_data(data)
 
+        cherrypy.log('set_data: getting key')
+
         # upload the data to s3
-        key = self.get_new_key()
+        key = self.get_key()
+
+        cherrypy.log('set_data: uploading')
 
         # TODO: pass our computed hashes so it doesnt re-hash
         key.set_contents_from_string(data)
@@ -115,18 +119,20 @@ class S3Data(Data):
 
     def get_data(self):
         key = self.get_key()
+        key.key = self.s3_key
         return key.get_contents_as_string()
 
-    def get_bucket(conn):
+    def get_bucket(self,conn):
         if not hasattr(self,'s3_bucket') or not self.s3_bucket:
-            self.s3_bucket = Bucket(connection=self.conn,
+            self.s3_bucket = Bucket(connection=conn,
                                     name=cherrypy.config.get('s3_bucket_name'))
         return self.s3_bucket
 
-    def connect_s3():
+    def connect_s3(self):
         if not hasattr(self,'s3_conn') or not self.s3_conn:
-            self.conn = cherrypy.config.get('s3_secret')
-        return self.conn
+            self.s3_conn = S3Connection(cherrypy.config.get('s3_key'),
+                                        cherrypy.config.get('s3_secret'))
+        return self.s3_conn
 
     def get_key(self):
         conn = self.connect_s3()
@@ -346,7 +352,7 @@ class Comment(BaseEntity):
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(DriveDataHelper):
+class Media(S3DataHelper):
     using_options(tablename='media')
 
     title = Field(Unicode(100))
