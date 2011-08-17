@@ -9,7 +9,7 @@ import controllers as c
 def setup(config='./cherryconfig.ini'):
 
     # create our app from root
-    app = cherrypy.Application(c.Root())
+    app = cherrypy.Application(c.Root(),config=config)
 
     # update our config
     cherrypy.config.update(config)

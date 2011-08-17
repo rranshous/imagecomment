@@ -46,16 +46,17 @@ def setup():
 
 
 
-
-
 # for now
 BaseEntity = Entity
 
-class Data(BaseEntity):
+class Data(Entity):
     """
     obj for describing the attributes of data stored
     via the data helper
     """
+
+    using_options(tablename='datas_info')
+
     size = Field(Float) # in bytes
     data_hash = Field(Text)
     label = Field(Text)
@@ -66,9 +67,10 @@ class Data(BaseEntity):
         cherrypy.log('set_data size: %s' % self.size)
         self.data_hash = self.generate_hash(data)
         cherrypy.log('set_data hash: %s' % self.data_hash)
+        return True
 
     def get_data(self):
-        pass
+        return None
 
     def compare_data(self,data):
         """
@@ -94,12 +96,16 @@ class Data(BaseEntity):
 
 class S3Data(Data):
 
+    using_options(inheritance='multi')
+
     s3_key = Field(UnicodeText)
 
     def set_data(self,data):
-        super(S3Data,self).set_data(data)
 
         cherrypy.log('set_data: getting key')
+
+        # hit the rent up
+        super(S3Data,self).set_data(data)
 
         # upload the data to s3
         key = self.get_key()
@@ -117,7 +123,7 @@ class S3Data(Data):
     def get_data(self):
         key = self.get_key()
         key.key = self.s3_key
-        return key.get_contents_as_string()
+        return key.get_contents_as_string() or None
 
     def get_bucket(self,conn):
         if not hasattr(self,'s3_bucket') or not self.s3_bucket:
@@ -138,22 +144,27 @@ class S3Data(Data):
         return key
 
 
-class MemcacheData(Data):
-    pass
-
-class DriveData(Data):
+class DriveData(S3Data):
     """
     Info on data stored by the DriveDataHelper
     """
+
+    using_options(inheritance='multi')
+
     path = Field(UnicodeText)
 
-    def set_data(self,data):
+    def set_data(self,data,deep=True):
         """
         set the file data
         """
 
-        # respect ur rents
-        Data.set_data(self,data)
+        cherrypy.log('drive data set_data')
+
+        # do we want to set deeper?
+        if deep:
+            super(DriveData,self).set_data(data)
+        else:
+            Data.set_data(self,data)
 
         # now we need to save it to the disk
         # use it's hash to save it down, that way repeat data
@@ -178,12 +189,24 @@ class DriveData(Data):
 
         if not self.path or not os.path.exists(self.path):
             cherrypy.log('get_data path not found')
-            return None
+
+            # dig deeper
+            return super(DriveData,self).get_data()
 
         cherrypy.log('get_data: %s' % self.path)
 
         with open(self.path,'r') as fh:
-            return fh.read()
+            return fh.read() or None
+
+
+class MemcacheData(DriveData):
+
+    def set_data(self,data):
+        pass
+
+    def get_data(self):
+        pass
+
 
 
 class DataHelper(BaseEntity):
@@ -240,25 +263,6 @@ class DataHelper(BaseEntity):
                              filter(self.DATA_TYPE.obj==self).\
                              filter(self.DATA_TYPE.label==label).\
                              first()
-
-
-class S3DataHelper(DataHelper):
-    """
-    data helper which stores / gets it's data from s3
-    """
-    DATA_TYPE = S3Data
-
-class DriveDataHelper(DataHelper):
-    """
-    data helper which sets / gets it's data from the local hard drive
-    """
-    DATA_TYPE = DriveData
-
-class MemcacheDataHelper(DataHelper):
-    """
-    data helper which sets / gets from memcache
-    """
-    DATA_TYPE = MemcacheData
 
 
 
@@ -349,8 +353,10 @@ class Comment(BaseEntity):
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(S3DataHelper):
+class Media(DataHelper):
     using_options(tablename='media')
+
+    DATA_TYPE = DriveData
 
     title = Field(Unicode(100))
     size = Field(Float)
