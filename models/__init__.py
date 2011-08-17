@@ -33,15 +33,12 @@ def reset_session():
     return
 
 def setup():
-#    metadata.bind = cherrypy.config.get('db_url')
-    metadata.bind = "sqlite:///./dbs/media.db"
-    #with open('mysql_creds.txt','r') as fh:
-    #    lines = fh.readlines()
-    #    username = lines[0].strip()
-    #    password = lines[1].strip()
-    #metadata.bind = "mysql+mysqldb://%s:%s@localhost/ranshouswedding?charset=utf8" \
-    #                % (username,password)
-    print 'bind: %s' % metadata.bind
+    metadata.bind = cherrypy.config.get('db_url')
+    cherrypy.log('config bind: %s' % metadata.bind)
+    with open('mysql_creds.txt','r') as fh:
+        lines = fh.readlines()
+        username = lines[0].strip()
+        password = lines[1].strip()
     metadata.bind.echo = False
     setup_all()
 
