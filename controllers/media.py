@@ -38,6 +38,9 @@ class Media:
                     # create our new media
                     media = m.Media(title=title)
 
+                    # add our new media to the session
+                    m.session.add(media)
+
                     # who uploaded this?
                     media.user = cherrypy.request.user
 
@@ -78,9 +81,7 @@ class Media:
                                 m.session.add(album)
                         media.albums.append(album)
 
-                    # add our media to the db, commit
-                    m.session.add(media)
-                m.session.commit()
+                    m.session.commit()
 
                 # let our user know it worked
                 add_flash('info','New media successfully created!')
@@ -255,6 +256,7 @@ class Media:
                 filename = media.get_safe_title()
             if size:
                 data = media.create_thumbnail(size)
+                m.session.commit()
             else:
                 data = media.get_data()
 

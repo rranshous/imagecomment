@@ -9,6 +9,7 @@ from subprocess import call
 import lib.exceptions as e
 from cStringIO import StringIO
 from PIL import Image
+from base64 import b64encode,b64decode
 
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -60,7 +61,7 @@ class Data(Entity):
     size = Field(Float) # in bytes
     data_hash = Field(Text)
     label = Field(Text)
-    obj = ManyToOne('DataHelper')
+    obj = ManyToOne('DataEnabler')
 
     def set_data(self,data):
         self.size = len(data)
@@ -71,6 +72,12 @@ class Data(Entity):
 
     def get_data(self):
         return None
+
+    def delete(self,deep=True):
+        """
+        deletes the data
+        """
+        return True
 
     def compare_data(self,data):
         """
@@ -94,7 +101,12 @@ class Data(Entity):
         return unique
 
 
+
+
+
 class S3Data(Data):
+
+    enabled = False
 
     using_options(inheritance='multi')
 
@@ -102,17 +114,22 @@ class S3Data(Data):
 
     def set_data(self,data):
 
-        cherrypy.log('set_data: getting key')
-
         # hit the rent up
         super(S3Data,self).set_data(data)
+
+        cherrypy.log('s3 data set_data')
+
+        if not self.enabled:
+            cherrypy.log('s3 not enabled, skipping')
+            return False
 
         # upload the data to s3
         key = self.get_key()
 
-        cherrypy.log('set_data: uploading')
+        cherrypy.log('uploading')
 
         # TODO: pass our computed hashes so it doesnt re-hash
+        # TODO: don't set if they key aleady exists
         key.set_contents_from_string(data)
 
         # save it's key
@@ -122,8 +139,14 @@ class S3Data(Data):
 
     def get_data(self):
         key = self.get_key()
-        key.key = self.s3_key
         return key.get_contents_as_string() or None
+
+    def delete(self,deep=True):
+        if deep:
+            super(S3Data,self).delete(deep)
+        key = self.get_key()
+        key.delete()
+        self.s3_key = None
 
     def get_bucket(self,conn):
         if not hasattr(self,'s3_bucket') or not self.s3_bucket:
@@ -141,30 +164,28 @@ class S3Data(Data):
         conn = self.connect_s3()
         bucket = self.get_bucket(conn)
         key = Key(bucket)
+        if self.s3_key:
+            key.key = self.s3_key
         return key
 
 
 class DriveData(S3Data):
     """
-    Info on data stored by the DriveDataHelper
+    Info on data stored by the DataEnabler
     """
 
     using_options(inheritance='multi')
 
-    path = Field(UnicodeText)
+    local_save_path = Field(UnicodeText)
 
-    def set_data(self,data,deep=True):
+    def set_data(self,data):
         """
         set the file data
         """
+        # do we want to set deeper?
+        super(DriveData,self).set_data(data)
 
         cherrypy.log('drive data set_data')
-
-        # do we want to set deeper?
-        if deep:
-            super(DriveData,self).set_data(data)
-        else:
-            Data.set_data(self,data)
 
         # now we need to save it to the disk
         # use it's hash to save it down, that way repeat data
@@ -176,7 +197,7 @@ class DriveData(S3Data):
             cherrypy.log('set_data writing: %s' % path)
             fh.write(data)
             fh.close()
-            self.path = path
+            self.local_save_path = path
 
         return True
 
@@ -187,29 +208,67 @@ class DriveData(S3Data):
 
         cherrypy.log('get_data')
 
-        if not self.path or not os.path.exists(self.path):
+        if not self.local_save_path or not os.path.exists(self.local_save_path):
             cherrypy.log('get_data path not found')
 
             # dig deeper
             return super(DriveData,self).get_data()
 
-        cherrypy.log('get_data: %s' % self.path)
+        cherrypy.log('get_data: %s' % self.local_save_path)
 
-        with open(self.path,'r') as fh:
+        with open(self.local_save_path,'r') as fh:
             return fh.read() or None
+
+
+    def delete(self,deep=True):
+        if deep:
+            super(DriveData,self).delete(deep)
+        cherrypy.log('DriveData delete')
+
+        if os.path.exists(self.local_save_path):
+            os.unlink(self.local_save_path)
+            self.local_save_path = None
 
 
 class MemcacheData(DriveData):
 
     def set_data(self,data):
-        pass
+        from lib.memcache_client import memcache_client
+
+        # respect ur eldurs
+        super(MemcacheData,self).set_data(data)
+
+        cherrypy.log('memcache data set_data: %s' % len(data))
+
+        # we are b64ing the data for consistency
+        memcache_client.set(str(self.data_hash),
+                            b64encode(data))
+
+        return True
 
     def get_data(self):
-        pass
+        from lib.memcache_client import memcache_client
+
+        cherrypy.log('memcache data get_data')
+
+        # check and see if we have it
+        data = memcache_client.get(str(self.data_hash))
+
+        if not data:
+            cherrypy.log('not found')
+            return super(MemcacheData,self).get_data()
+
+        return b64decode(data)
+
+    def delete(self,deep=True):
+        if deep:
+            super(MemcacheData,self).delete(deep)
+        from lib.memcache_client import memcache_client
+        cherrypy.log('memcache delete')a
+        memcache_client.delete(self.data_hash)
 
 
-
-class DataHelper(BaseEntity):
+class DataEnabler(BaseEntity):
     """
     to be subclassed. facilitates setting / getting obj data.
     Data can be set or got by label, not name. For example
@@ -219,6 +278,7 @@ class DataHelper(BaseEntity):
     """
 
     datas_info = OneToMany('Data')
+
     DATA_TYPE = None
 
     def set_data(self,file_data,label='default'):
@@ -229,13 +289,21 @@ class DataHelper(BaseEntity):
         # try and find existing info
         data = self.find_data(label)
 
+        cherrypy.log('DataEnabler set_data: %s' % label)
+
         # check and see if the info is for the same data
         if not data or not data.compare_data(file_data):
+            cherrypy.log('adding data entry')
 
             # they are not the same data, we need to create
             # a new info for our data
-            data = self.DATA_TYPE(label=label,obj=self)
+            data = self.DATA_TYPE(label=label)
             data.set_data(file_data)
+            self.datas_info.append(data)
+            session.add(data)
+
+        else:
+            cherrypy.log('skipping set, same data')
 
         return data
 
@@ -244,16 +312,22 @@ class DataHelper(BaseEntity):
         gets the obj's data. If no data is found returns None.
         """
 
+        cherrypy.log('DataEnabler get_data: %s' % label)
+
         # find the data
         data = self.find_data(label)
 
         # if we didn't find it return none
         if not data:
-            cherrypy.log('did not find data entry')
+            cherrypy.log('DataEnabler did not find data entry')
             return None
 
         # return the data
-        return data.get_data()
+        _data = data.get_data()
+        if len(_data) != data.size:
+            cherrypy.log('wrong size found: %s %s'
+                         % (len(_data),data.size))
+        return _data
 
     def find_data(self,label):
         """
@@ -353,10 +427,10 @@ class Comment(BaseEntity):
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(DataHelper):
+class Media(DataEnabler):
     using_options(tablename='media')
 
-    DATA_TYPE = DriveData
+    DATA_TYPE = MemcacheData
 
     title = Field(Unicode(100))
     size = Field(Float)

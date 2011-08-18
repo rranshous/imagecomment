@@ -1,6 +1,13 @@
 #!/usr/bin/python
 
-import models as m; m.setup()
+import sys
+
+if 'production' in sys.argv:
+    import wsgi_entry
+else:
+    import cherryapp
+
+import models as m;
 from datetime import datetime, timedelta
 import os
 from boto.s3.connection import S3Connection
@@ -32,51 +39,27 @@ def run():
     top = datetime.now() - timedelta(minutes=20)
     medias = m.Media.query.filter(m.Media.created_at<top).filter(m.Media.cdn_media_path==None).all()
 
+    # enable s3 uploading
+    m.S3Data.enabled = True
+
     print 'medias: %s' % len(medias)
 
     for media in medias:
 
         print 'media: %s' % media.media_path
 
-        # find it on the drive
-        if not os.path.exists(media.media_path):
-            print 'doesnt exist'
-            # woops
-            continue
 
-        key, s3_url = upload_to_s3(media.media_path)
-        media.cdn_media_path = s3_url
-        media.s3_key = key
+        # if we haven't uploaded this guy to s3 yet
+        for data in media.datas_info:
+            if not data.s3_key:
+                _data = data.get_data()
+                m.S3Data.set_data(data,_data)
 
-        # get rid of local file
-        os.unlink(media.media_path)
-        # get rid of the media path
+            # now we can get rid of our local hdd file
+            m.DriveData.delete(data,deep=False)
 
         # and save
         m.session.commit()
-
-def upload_to_s3(local_path):
-    conn = connect_s3()
-    bucket = get_bucket(conn)
-
-    print 'uploading'
-
-    key = Key(bucket)
-    key.key = get_s3_name(local_path)
-    key.set_contents_from_filename(local_path)
-    key.set_acl('public-read')
-
-    print 'key: %s' % key.key
-
-    s3_url = 'https://s3.amazonaws.com/ranshousweddingphotos/%s' % key.key
-
-    return (key.key, s3_url)
-
-def get_s3_name(path):
-    n = os.path.basename(path)
-    n.replace('_','')
-    name = 'media/%s' % n
-    return name
 
 if __name__ == '__main__':
     run()
