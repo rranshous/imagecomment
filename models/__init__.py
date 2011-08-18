@@ -73,7 +73,7 @@ class Data(Entity):
         cherrypy.log('set_data hash: %s' % self.data_hash)
         return True
 
-    def get_data(self):
+    def get_data(self,chunked=False):
         return None
 
     def delete(self,deep=True):
@@ -145,15 +145,60 @@ class S3Data(Data):
 
         return True
 
-    def get_data(self):
+    def get_data(self,chunked=False):
         cherrypy.log('S3data get_data')
         key = self.get_key()
-        data = key.get_contents_as_string() or None
-        if not data:
-            data = super(S3Data,self).get_data()
-            if data and S3Data.repopulate:
-                S3Data.set_data(self,data,False)
-            return data
+
+        # see if the key / data exists
+        if not key.exists()
+            # doesn't exist, see if our super has it
+            data = super(S3Data,self).get_data(chunked)
+
+            # if we're chunked what we get back is going to be a generator
+            if chunked:
+
+                # if we are going to repopulate we need a container
+                if self.repopulate:
+                    data = ''
+
+                # grab / yield up the data pieces
+                try:
+                    while True:
+                        # grab the next value
+                        p = data.next()
+
+                        # since we are repopulating we need to hold the data
+                        if self.repopulate:
+                            data += p
+
+                        # return back our piece of data
+                        yield p
+
+                except StopIteration:
+                    # we've run out of data
+                    # if we're supposed to repop do so
+                    if data and S3Data.repopulate:
+                        S3Data.set_data(self,data,False)
+
+                    # and we're done, so raise our StopIteration
+                    raise
+
+            # we're not chunking, data is data
+            else:
+                # if we're supposed to repop do so
+                if data and S3Data.repopulate:
+                    S3Data.set_data(self,data,False)
+
+        # we have the data! lets get it
+        else:
+            if chunked:
+                # we want to read the data in chunks
+                for p in key:
+                    yield p
+            else:
+                # grab the data from s3
+                data = key.get_contents_as_string()
+
         return data
 
     def delete(self,deep=True):
@@ -342,7 +387,7 @@ class DataEnabler(BaseEntity):
 
         return data
 
-    def get_data(self,label='default'):
+    def get_data(self,label='default',chunked=False):
         """
         gets the obj's data. If no data is found returns None.
         """
@@ -358,11 +403,19 @@ class DataEnabler(BaseEntity):
             return None
 
         # return the data
-        _data = data.get_data()
-        if len(_data) != data.size:
-            cherrypy.log('wrong size found: %s %s'
-                         % (len(_data),data.size))
-        return _data
+        if chunked:
+            # they want us to return a generator which returns
+            # the data in pieces
+            def get_chunks():
+                for piece in data.get_data(chunked=True):
+                    yield piece
+        else:
+            # they just want their data all at once
+            _data = data.get_data()
+            if len(_data) != data.size:
+                cherrypy.log('wrong size found: %s %s'
+                             % (len(_data),data.size))
+            return _data
 
     def find_data(self,label):
         """
@@ -480,13 +533,6 @@ class Media(DataEnabler):
 
     add_tag_by_name = add_tag_by_name
 
-    #def get_data(self,label='default'):
-        # we are going call the helper's get
-        # data that we over rode until we find one
-        # that has our data
-
-
-    #def set_data(self,data,label='default'):
 
     def create_thumbnail(self,w,h='',overwrite=False):
         cherrypy.log('creating thumbnail')

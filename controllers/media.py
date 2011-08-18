@@ -243,7 +243,6 @@ class Media:
 
 
     @cherrypy.expose
-    @public
     def data(self,id,filename=None,size=None):
         """ returns the data for the media, only if your authed
             to view the media """
@@ -263,6 +262,7 @@ class Media:
             if not data:
                 error(404)
 
+            # figure out the content type, update header
             ext = media.extension.lower() if media.extension else None
             content_type = mimetypes.types_map.get(ext,None)
             cherrypy.response.headers['Content-Type'] = content_type or 'image/jpg'
