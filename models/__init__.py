@@ -63,7 +63,10 @@ class Data(Entity):
     label = Field(Text)
     obj = ManyToOne('DataEnabler')
 
-    def set_data(self,data):
+    repopulate = True  # if a super has the data and we dont
+                       # should we save it ?
+
+    def set_data(self,data,deep=True):
         self.size = len(data)
         cherrypy.log('set_data size: %s' % self.size)
         self.data_hash = self.generate_hash(data)
@@ -112,10 +115,15 @@ class S3Data(Data):
 
     s3_key = Field(UnicodeText)
 
-    def set_data(self,data):
+    repopulate = True
+
+    def set_data(self,data,deep=True):
 
         # hit the rent up
-        super(S3Data,self).set_data(data)
+        if deep:
+            super(S3Data,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
 
         cherrypy.log('s3 data set_data')
 
@@ -138,8 +146,15 @@ class S3Data(Data):
         return True
 
     def get_data(self):
+        cherrypy.log('S3data get_data')
         key = self.get_key()
-        return key.get_contents_as_string() or None
+        data = key.get_contents_as_string() or None
+        if not data:
+            data = super(S3Data,self).get_data()
+            if data and S3Data.repopulate:
+                S3Data.set_data(self,data,False)
+            return data
+        return data
 
     def delete(self,deep=True):
         if deep:
@@ -178,12 +193,17 @@ class DriveData(S3Data):
 
     local_save_path = Field(UnicodeText)
 
-    def set_data(self,data):
+    repopulate = False
+
+    def set_data(self,data,deep=True):
         """
         set the file data
         """
         # do we want to set deeper?
-        super(DriveData,self).set_data(data)
+        if deep:
+            super(DriveData,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
 
         cherrypy.log('drive data set_data')
 
@@ -206,13 +226,19 @@ class DriveData(S3Data):
         return the file data
         """
 
-        cherrypy.log('get_data')
+        cherrypy.log('drivedata get_data')
 
         if not self.local_save_path or not os.path.exists(self.local_save_path):
-            cherrypy.log('get_data path not found')
+            cherrypy.log('drivedata path not found')
 
             # dig deeper
-            return super(DriveData,self).get_data()
+            data = super(DriveData,self).get_data()
+
+            # someone knew better than me!
+            if data and DriveData.repopulate:
+                DriveData.set_data(self,data,False)
+
+            return data
 
         cherrypy.log('get_data: %s' % self.local_save_path)
 
@@ -225,20 +251,25 @@ class DriveData(S3Data):
             super(DriveData,self).delete(deep)
         cherrypy.log('DriveData delete')
 
-        if os.path.exists(self.local_save_path):
+        if self.local_save_path and os.path.exists(self.local_save_path):
             os.unlink(self.local_save_path)
             self.local_save_path = None
 
 
 class MemcacheData(DriveData):
 
-    def set_data(self,data):
+    repopulate = True
+
+    def set_data(self,data,deep=True):
         from lib.memcache_client import memcache_client
 
         # respect ur eldurs
-        super(MemcacheData,self).set_data(data)
+        if deep:
+            super(MemcacheData,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
 
-        cherrypy.log('memcache data set_data: %s' % len(data))
+        cherrypy.log('memcache data set_data: %s' % self.data_hash)
 
         # we are b64ing the data for consistency
         memcache_client.set(str(self.data_hash),
@@ -249,14 +280,18 @@ class MemcacheData(DriveData):
     def get_data(self):
         from lib.memcache_client import memcache_client
 
-        cherrypy.log('memcache data get_data')
+        cherrypy.log('memcache data get_data: %s' % self.data_hash)
 
         # check and see if we have it
         data = memcache_client.get(str(self.data_hash))
 
         if not data:
-            cherrypy.log('not found')
-            return super(MemcacheData,self).get_data()
+            cherrypy.log('memcache not found')
+            data = super(MemcacheData,self).get_data()
+            if data and MemcacheData.repopulate:
+                cherrypy.log('memcachedata repopulating')
+                MemcacheData.set_data(self,data,False)
+            return data
 
         return b64decode(data)
 
@@ -264,7 +299,7 @@ class MemcacheData(DriveData):
         if deep:
             super(MemcacheData,self).delete(deep)
         from lib.memcache_client import memcache_client
-        cherrypy.log('memcache delete')a
+        cherrypy.log('memcache delete')
         memcache_client.delete(self.data_hash)
 
 
