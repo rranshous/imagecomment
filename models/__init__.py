@@ -150,38 +150,39 @@ class S3Data(Data):
         key = self.get_key()
 
         # see if the key / data exists
-        if not key.exists()
+        if not key.exists():
             # doesn't exist, see if our super has it
             data = super(S3Data,self).get_data(chunked)
 
             # if we're chunked what we get back is going to be a generator
             if chunked:
+                def stream_data():
+                    # if we are going to repopulate we need a container
+                    if S3Data.repopulate:
+                        buffered_data = ''
 
-                # if we are going to repopulate we need a container
-                if S3Data.repopulate:
-                    buffered_data = ''
+                    # grab / yield up the data pieces
+                    try:
+                        while True:
+                            # grab the next value
+                            p = data.next()
 
-                # grab / yield up the data pieces
-                try:
-                    while True:
-                        # grab the next value
-                        p = data.next()
+                            # since we are repopulating we need to hold the data
+                            if S3Data.repopulate:
+                                buffered_data += p
 
-                        # since we are repopulating we need to hold the data
-                        if S3Data.repopulate:
-                            buffered_data += p
+                            # return back our piece of data
+                            yield p
 
-                        # return back our piece of data
-                        yield p
+                    except StopIteration:
+                        # we've run out of data
+                        # if we're supposed to repop do so
+                        if buffered_data and S3Data.repopulate:
+                            S3Data.set_data(self,buffered_data,False)
 
-                except StopIteration:
-                    # we've run out of data
-                    # if we're supposed to repop do so
-                    if buffered_data and S3Data.repopulate:
-                        S3Data.set_data(self,buffered_data,False)
-
-                    # and we're done, so raise our StopIteration
-                    raise
+                        # and we're done, so raise our StopIteration
+                        raise
+                return stream_data
 
             # we're not chunking, data is data
             else:
@@ -194,10 +195,12 @@ class S3Data(Data):
         # we have the data! lets get it
         else:
             if chunked:
-                cherrypy.log('S3Data returning in chunks')
-                # we want to read the data in chunks
-                for p in key:
-                    yield p
+                def stream_data():
+                    cherrypy.log('S3Data returning in chunks')
+                    # we want to read the data in chunks
+                    for p in key:
+                        yield p
+                return stream_data
             else:
                 # grab the data from s3
                 data = key.get_contents_as_string()
@@ -286,19 +289,21 @@ class DriveData(S3Data):
 
             # is data a generator?
             if chunked:
-                if DriveData.repopulate:
-                    buffered_data = ''
-                try:
-                    while True:
-                        p = data.next()
-                        if DriveData.repopulate:
-                            buffered_data += p
-                        yield p
-                except StopIteration:
-                # someone knew better than me!
-                if data and DriveData.repopulate:
-                    DriveData.set_data(self,buffered_data,False)
-                raise
+                def stream_data():
+                    if DriveData.repopulate:
+                        buffered_data = ''
+                    try:
+                        while True:
+                            p = data.next()
+                            if DriveData.repopulate:
+                                buffered_data += p
+                            yield p
+                    except StopIteration:
+                        # someone knew better than me!
+                        if data and DriveData.repopulate:
+                            DriveData.set_data(self,buffered_data,False)
+                        raise
+                return stream_data
 
             # data is not a generator
             else:
@@ -307,12 +312,15 @@ class DriveData(S3Data):
 
         else:
             cherrypy.log('get_data: %s' % self.local_save_path)
-            with open(self.local_save_path,'r') as fh:
-                cherrypy.log('drivedata returning chunks')
-                if chunked:
-                    for p in fh.read(self.BUFFER_SIZE):
-                        yield p
-                else:
+            if chunked:
+                def stream_data():
+                    cherrypy.log('drivedata returning chunks')
+                    with open(self.local_save_path,'r') as fh:
+                        for p in fh.read(self.BUFFER_SIZE):
+                            yield p
+                return stream_data
+            else:
+                with open(self.local_save_path,'r') as fh:
                     data = fh.read()
 
         return data
@@ -363,19 +371,21 @@ class MemcacheData(DriveData):
 
             # data may be a generator
             if chunked:
-                if MemcacheData.repopulate:
-                    buffered_data = ''
-                try:
-                    while True:
-                        p = data.next()
-                        if MemcacheData.repopulate:
-                            buffered_data += p
-                        yield p
-                except StopIteration:
-                    if buffered_data and MemcacheData.repopulate:
-                        cherrypy.log('memcachedata repopulating')
-                        MemcacheData.set_data(self,buffered_data,False)
-                    raise
+                def stream_data():
+                    if MemcacheData.repopulate:
+                        buffered_data = ''
+                    try:
+                        while True:
+                            p = data.next()
+                            if MemcacheData.repopulate:
+                                buffered_data += p
+                            yield p
+                    except StopIteration:
+                        if buffered_data and MemcacheData.repopulate:
+                            cherrypy.log('memcachedata repopulating')
+                            MemcacheData.set_data(self,buffered_data,False)
+                        raise
+                return stream_data
 
             # data is not a generator
             else:
@@ -388,7 +398,9 @@ class MemcacheData(DriveData):
         else:
             # since we can't really chunk we fake it
             if chunked:
-                yield b64decode(data)
+                def stream_data():
+                    yield b64decode(data)
+                return stream_data
             else:
                 return b64decode(data)
 
@@ -458,8 +470,8 @@ class DataEnabler(BaseEntity):
         if chunked:
             cherrypy.log('DataEnabler returning in chunks')
             # they want us to generate up the pieces
-            for p in data.get_data(chunked=True)
-                yield p
+            return data.get_data(chunked=True)
+
         else:
             # they just want their data all at once
             _data = data.get_data()
