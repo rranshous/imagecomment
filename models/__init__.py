@@ -156,6 +156,8 @@ class S3Data(Data):
 
         # see if the key / data exists
         if not key.exists():
+            cherrypy.log('S3 key does not exist')
+
             # doesn't exist, see if our super has it
             data = super(S3Data,self).get_data(chunked=chunked)
 
@@ -164,7 +166,7 @@ class S3Data(Data):
                 def stream_data():
                     # if we are going to repopulate we need a container
                     if S3Data.repopulate:
-                        buffered_data = ''
+                        buffered_data = StringIO()
 
                     # grab / yield up the data pieces
                     try:
@@ -174,7 +176,7 @@ class S3Data(Data):
 
                             # since we are repopulating we need to hold the data
                             if S3Data.repopulate:
-                                buffered_data += p
+                                buffered_data.write(p)
 
                             # return back our piece of data
                             yield p
@@ -183,7 +185,7 @@ class S3Data(Data):
                         # we've run out of data
                         # if we're supposed to repop do so
                         if buffered_data and S3Data.repopulate:
-                            S3Data.set_data(self,buffered_data,False)
+                            S3Data.set_data(self,buffered_data.getvalue(),False)
 
                         # and we're done, so raise our StopIteration
                         raise
@@ -207,9 +209,11 @@ class S3Data(Data):
                         yield p
                 return stream_data()
             else:
+                cherrypy.log('S3 returnin data')
                 # grab the data from s3
                 data = key.get_contents_as_string()
 
+                return data
 
     def delete(self,deep=True):
         if deep:
@@ -296,24 +300,24 @@ class DriveData(S3Data):
             if chunked:
                 def stream_data():
                     if DriveData.repopulate:
-                        buffered_data = ''
+                        buffered_data = StringIO()
                     try:
                         while True:
                             p = data.next()
                             if DriveData.repopulate:
-                                buffered_data += p
+                                buffered_data.write(p)
                             yield p
                     except StopIteration:
                         # someone knew better than me!
-                        if data and DriveData.repopulate:
-                            DriveData.set_data(self,buffered_data,False)
+                        if buffered_data and DriveData.repopulate:
+                            DriveData.set_data(self,buffered_data.getvalue(),False)
                         raise
                 return stream_data()
 
             # data is not a generator
             else:
                 if data and DriveData.repopulate:
-                    DriveData.set_data(self,buffered_data,False)
+                    DriveData.set_data(self,data,False)
 
         else:
             cherrypy.log('get_data: %s' % self.local_save_path)
@@ -379,18 +383,17 @@ class MemcacheData(DriveData):
             if chunked:
                 def stream_data():
                     if MemcacheData.repopulate:
-                        buffered_data = ''
+                        buffered_data = StringIO()
                     try:
                         while True:
                             p = data.next()
                             if MemcacheData.repopulate:
-                                buffered_data += p
+                                buffered_data.write(p)
                             yield p
                     except StopIteration:
-                        cherrypy.log('buffered data size: %s' % len(buffered_data))
                         if buffered_data and MemcacheData.repopulate:
                             cherrypy.log('memcachedata repopulating')
-                            MemcacheData.set_data(self,buffered_data,False)
+                            MemcacheData.set_data(self,buffered_data.getvalue(),False)
                         raise
                 return stream_data()
 
@@ -481,7 +484,9 @@ class DataEnabler(BaseEntity):
         else:
             # they just want their data all at once
             _data = data.get_data()
-            if len(_data) != data.size:
+            if not _data:
+                cherrypy.log('data expected but not found')
+            elif len(_data) != data.size:
                 cherrypy.log('wrong size found: %s %s'
                              % (len(_data),data.size))
             return _data
