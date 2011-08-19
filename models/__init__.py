@@ -158,7 +158,7 @@ class S3Data(Data):
             if chunked:
 
                 # if we are going to repopulate we need a container
-                if self.repopulate:
+                if S3Data.repopulate:
                     buffered_data = ''
 
                 # grab / yield up the data pieces
@@ -168,7 +168,7 @@ class S3Data(Data):
                         p = data.next()
 
                         # since we are repopulating we need to hold the data
-                        if self.repopulate:
+                        if S3Data.repopulate:
                             buffered_data += p
 
                         # return back our piece of data
@@ -194,6 +194,7 @@ class S3Data(Data):
         # we have the data! lets get it
         else:
             if chunked:
+                cherrypy.log('S3Data returning in chunks')
                 # we want to read the data in chunks
                 for p in key:
                     yield p
@@ -285,12 +286,12 @@ class DriveData(S3Data):
 
             # is data a generator?
             if chunked:
-                if self.repopulate:
+                if DriveData.repopulate:
                     buffered_data = ''
                 try:
                     while True:
                         p = data.next()
-                        if self.repopulate:
+                        if DriveData.repopulate:
                             buffered_data += p
                         yield p
                 except StopIteration:
@@ -307,6 +308,7 @@ class DriveData(S3Data):
         else:
             cherrypy.log('get_data: %s' % self.local_save_path)
             with open(self.local_save_path,'r') as fh:
+                cherrypy.log('drivedata returning chunks')
                 if chunked:
                     for p in fh.read(self.BUFFER_SIZE):
                         yield p
@@ -386,7 +388,7 @@ class MemcacheData(DriveData):
         else:
             # since we can't really chunk we fake it
             if chunked:
-                yield data
+                yield b64decode(data)
             else:
                 return b64decode(data)
 
@@ -454,11 +456,10 @@ class DataEnabler(BaseEntity):
 
         # return the data
         if chunked:
-            # they want us to return a generator which returns
-            # the data in pieces
-            def get_chunks():
-                for piece in data.get_data(chunked=True):
-                    yield piece
+            cherrypy.log('DataEnabler returning in chunks')
+            # they want us to generate up the pieces
+            for p in data.get_data(chunked=True)
+                yield p
         else:
             # they just want their data all at once
             _data = data.get_data()

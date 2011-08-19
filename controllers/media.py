@@ -256,7 +256,9 @@ class Media:
             if size:
                 data = media.create_thumbnail(size)
             else:
-                data = media.get_data()
+                # we are going to try streaming back the response
+                cherrypy.log('returning generator')
+                data = media.get_data(chunked=True)
 
             # need to commit the new thumbnail (possibly)
             m.session.commit()
