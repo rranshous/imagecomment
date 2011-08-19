@@ -255,9 +255,11 @@ class Media:
                 filename = media.get_safe_title()
             if size:
                 data = media.create_thumbnail(size)
-                m.session.commit()
             else:
                 data = media.get_data()
+
+            # need to commit the new thumbnail (possibly)
+            m.session.commit()
 
             if not data:
                 error(404)

@@ -159,7 +159,7 @@ class S3Data(Data):
 
                 # if we are going to repopulate we need a container
                 if self.repopulate:
-                    data = ''
+                    buffered_data = ''
 
                 # grab / yield up the data pieces
                 try:
@@ -169,7 +169,7 @@ class S3Data(Data):
 
                         # since we are repopulating we need to hold the data
                         if self.repopulate:
-                            data += p
+                            buffered_data += p
 
                         # return back our piece of data
                         yield p
@@ -177,8 +177,8 @@ class S3Data(Data):
                 except StopIteration:
                     # we've run out of data
                     # if we're supposed to repop do so
-                    if data and S3Data.repopulate:
-                        S3Data.set_data(self,data,False)
+                    if buffered_data and S3Data.repopulate:
+                        S3Data.set_data(self,buffered_data,False)
 
                     # and we're done, so raise our StopIteration
                     raise
@@ -188,6 +188,8 @@ class S3Data(Data):
                 # if we're supposed to repop do so
                 if data and S3Data.repopulate:
                     S3Data.set_data(self,data,False)
+
+                return data
 
         # we have the data! lets get it
         else:
@@ -199,7 +201,6 @@ class S3Data(Data):
                 # grab the data from s3
                 data = key.get_contents_as_string()
 
-        return data
 
     def delete(self,deep=True):
         if deep:
@@ -266,29 +267,53 @@ class DriveData(S3Data):
 
         return True
 
-    def get_data(self):
+    def get_data(self,chunked=True):
         """
         return the file data
         """
 
         cherrypy.log('drivedata get_data')
 
+        # check and see if we have the data
         if not self.local_save_path or not os.path.exists(self.local_save_path):
+
+            # nope didn't have the data
             cherrypy.log('drivedata path not found')
 
             # dig deeper
-            data = super(DriveData,self).get_data()
+            data = super(DriveData,self).get_data(chunked=chunked)
 
-            # someone knew better than me!
-            if data and DriveData.repopulate:
-                DriveData.set_data(self,data,False)
+            # is data a generator?
+            if chunked:
+                if self.repopulate:
+                    buffered_data = ''
+                try:
+                    while True:
+                        p = data.next()
+                        if self.repopulate:
+                            buffered_data += p
+                        yield p
+                except StopIteration:
+                # someone knew better than me!
+                if data and DriveData.repopulate:
+                    DriveData.set_data(self,buffered_data,False)
+                raise
 
-            return data
+            # data is not a generator
+            else:
+                if data and DriveData.repopulate:
+                    DriveData.set_data(self,buffered_data,False)
 
-        cherrypy.log('get_data: %s' % self.local_save_path)
+        else:
+            cherrypy.log('get_data: %s' % self.local_save_path)
+            with open(self.local_save_path,'r') as fh:
+                if chunked:
+                    for p in fh.read(self.BUFFER_SIZE):
+                        yield p
+                else:
+                    data = fh.read()
 
-        with open(self.local_save_path,'r') as fh:
-            return fh.read() or None
+        return data
 
 
     def delete(self,deep=True):
@@ -322,7 +347,7 @@ class MemcacheData(DriveData):
 
         return True
 
-    def get_data(self):
+    def get_data(self,chunked=False):
         from lib.memcache_client import memcache_client
 
         cherrypy.log('memcache data get_data: %s' % self.data_hash)
@@ -333,12 +358,37 @@ class MemcacheData(DriveData):
         if not data:
             cherrypy.log('memcache not found')
             data = super(MemcacheData,self).get_data()
-            if data and MemcacheData.repopulate:
-                cherrypy.log('memcachedata repopulating')
-                MemcacheData.set_data(self,data,False)
-            return data
 
-        return b64decode(data)
+            # data may be a generator
+            if chunked:
+                if MemcacheData.repopulate:
+                    buffered_data = ''
+                try:
+                    while True:
+                        p = data.next()
+                        if MemcacheData.repopulate:
+                            buffered_data += p
+                        yield p
+                except StopIteration:
+                    if buffered_data and MemcacheData.repopulate:
+                        cherrypy.log('memcachedata repopulating')
+                        MemcacheData.set_data(self,buffered_data,False)
+                    raise
+
+            # data is not a generator
+            else:
+                if data and MemcacheData.repopulate:
+                    cherrypy.log('memcachedata repopulating')
+                    MemcacheData.set_data(self,data,False)
+                return data
+
+        # we have the data
+        else:
+            # since we can't really chunk we fake it
+            if chunked:
+                yield data
+            else:
+                return b64decode(data)
 
     def delete(self,deep=True):
         if deep:
