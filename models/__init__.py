@@ -10,6 +10,7 @@ import lib.exceptions as e
 from cStringIO import StringIO
 from PIL import Image
 from base64 import b64encode,b64decode
+from lib.memcache_client import MemcacheClient
 
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
@@ -65,6 +66,8 @@ class Data(Entity):
 
     repopulate = True  # if a super has the data and we dont
                        # should we save it ?
+
+    BUFFER_SIZE = 1024
 
     def set_data(self,data,deep=True):
         self.size = len(data)
@@ -134,11 +137,13 @@ class S3Data(Data):
         # upload the data to s3
         key = self.get_key()
 
-        cherrypy.log('uploading')
+        cherrypy.log('uploading: %s' % type(data))
 
         # TODO: pass our computed hashes so it doesnt re-hash
         # TODO: don't set if they key aleady exists
         key.set_contents_from_string(data)
+
+        cherrypy.log('finished upload')
 
         # save it's key
         self.s3_key = key.key
@@ -152,7 +157,7 @@ class S3Data(Data):
         # see if the key / data exists
         if not key.exists():
             # doesn't exist, see if our super has it
-            data = super(S3Data,self).get_data(chunked)
+            data = super(S3Data,self).get_data(chunked=chunked)
 
             # if we're chunked what we get back is going to be a generator
             if chunked:
@@ -182,7 +187,7 @@ class S3Data(Data):
 
                         # and we're done, so raise our StopIteration
                         raise
-                return stream_data
+                return stream_data()
 
             # we're not chunking, data is data
             else:
@@ -200,7 +205,7 @@ class S3Data(Data):
                     # we want to read the data in chunks
                     for p in key:
                         yield p
-                return stream_data
+                return stream_data()
             else:
                 # grab the data from s3
                 data = key.get_contents_as_string()
@@ -271,7 +276,7 @@ class DriveData(S3Data):
 
         return True
 
-    def get_data(self,chunked=True):
+    def get_data(self,chunked=False):
         """
         return the file data
         """
@@ -303,7 +308,7 @@ class DriveData(S3Data):
                         if data and DriveData.repopulate:
                             DriveData.set_data(self,buffered_data,False)
                         raise
-                return stream_data
+                return stream_data()
 
             # data is not a generator
             else:
@@ -313,12 +318,16 @@ class DriveData(S3Data):
         else:
             cherrypy.log('get_data: %s' % self.local_save_path)
             if chunked:
+                local_save_path = self.local_save_path
                 def stream_data():
                     cherrypy.log('drivedata returning chunks')
-                    with open(self.local_save_path,'r') as fh:
-                        for p in fh.read(self.BUFFER_SIZE):
+                    with open(local_save_path,'r') as fh:
+                        while True:
+                            p = fh.read(self.BUFFER_SIZE)
+                            if not p:
+                                break
                             yield p
-                return stream_data
+                return stream_data()
             else:
                 with open(self.local_save_path,'r') as fh:
                     data = fh.read()
@@ -341,33 +350,30 @@ class MemcacheData(DriveData):
     repopulate = True
 
     def set_data(self,data,deep=True):
-        from lib.memcache_client import memcache_client
-
         # respect ur eldurs
         if deep:
             super(MemcacheData,self).set_data(data)
         else:
             Data.set_data(self,data,deep)
 
-        cherrypy.log('memcache data set_data: %s' % self.data_hash)
+        cherrypy.log('memcache data set_data: %s' % type(data))
 
         # we are b64ing the data for consistency
-        memcache_client.set(str(self.data_hash),
+        MemcacheClient().set(str(self.data_hash),
                             b64encode(data))
 
         return True
 
     def get_data(self,chunked=False):
-        from lib.memcache_client import memcache_client
-
         cherrypy.log('memcache data get_data: %s' % self.data_hash)
 
         # check and see if we have it
-        data = memcache_client.get(str(self.data_hash))
+        data = MemcacheClient().get(str(self.data_hash))
 
         if not data:
             cherrypy.log('memcache not found')
-            data = super(MemcacheData,self).get_data()
+
+            data = super(MemcacheData,self).get_data(chunked=chunked)
 
             # data may be a generator
             if chunked:
@@ -381,11 +387,12 @@ class MemcacheData(DriveData):
                                 buffered_data += p
                             yield p
                     except StopIteration:
+                        cherrypy.log('buffered data size: %s' % len(buffered_data))
                         if buffered_data and MemcacheData.repopulate:
                             cherrypy.log('memcachedata repopulating')
                             MemcacheData.set_data(self,buffered_data,False)
                         raise
-                return stream_data
+                return stream_data()
 
             # data is not a generator
             else:
@@ -400,16 +407,15 @@ class MemcacheData(DriveData):
             if chunked:
                 def stream_data():
                     yield b64decode(data)
-                return stream_data
+                return stream_data()
             else:
                 return b64decode(data)
 
     def delete(self,deep=True):
         if deep:
             super(MemcacheData,self).delete(deep)
-        from lib.memcache_client import memcache_client
         cherrypy.log('memcache delete')
-        memcache_client.delete(self.data_hash)
+        MemcacheClient().delete(self.data_hash)
 
 
 class DataEnabler(BaseEntity):
@@ -610,7 +616,7 @@ class Media(DataEnabler):
             else:
                 size = '%sx%s' % (w,h)
 
-            size_tuple = int(w), int(h) if h else None
+            size_tuple = (int(w), int(h)) if h else None
 
             cherrypy.log('creating thumbnail: %s:%s' % size_tuple)
 

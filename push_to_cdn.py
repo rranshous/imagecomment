@@ -40,7 +40,8 @@ def run():
     # more than 20 min ago and upload to s3
 
     top = datetime.now() - timedelta(minutes=TIME_DELTA)
-    medias = m.Media.query.filter(m.Media.created_at<top).filter(m.Media.cdn_media_path==None).all()
+
+    medias = m.Media.query.filter(m.Media.created_at<top).all()
 
     # enable s3 uploading
     m.S3Data.enabled = True
