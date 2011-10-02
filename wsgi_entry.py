@@ -1,3 +1,3 @@
 import cherryapp
 
-application = cherryapp.setup()
+application = cherryapp.setup('./production.ini')

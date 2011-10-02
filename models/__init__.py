@@ -1,12 +1,19 @@
 from elixir import *
 import datetime
 import cherrypy
-from hashlib import sha1
+from hashlib import sha1, md5
 from tempfile import NamedTemporaryFile
 import models as m
 import os
 from subprocess import call
 import lib.exceptions as e
+from cStringIO import StringIO
+from PIL import Image
+from base64 import b64encode,b64decode
+
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+from boto.s3.bucket import Bucket
 
 ## helper functions ##
 def add_tag_by_name(self,name):
@@ -41,8 +48,335 @@ def setup():
 
 ## end helper functions ##
 
+
+
 # for now
 BaseEntity = Entity
+
+class Data(Entity):
+    """
+    obj for describing the attributes of data stored
+    via the data helper
+    """
+
+    using_options(tablename='datas_info')
+
+    size = Field(Float) # in bytes
+    data_hash = Field(Text)
+    label = Field(Text)
+    obj = ManyToOne('DataEnabler')
+
+    repopulate = True  # if a super has the data and we dont
+                       # should we save it ?
+
+    def set_data(self,data,deep=True):
+        self.size = len(data)
+        cherrypy.log('set_data size: %s' % self.size)
+        self.data_hash = self.generate_hash(data)
+        cherrypy.log('set_data hash: %s' % self.data_hash)
+        return True
+
+    def get_data(self):
+        return None
+
+    def delete(self,deep=True):
+        """
+        deletes the data
+        """
+        return True
+
+    def compare_data(self,data):
+        """
+        returns true if you passed the same data as this
+        is refering to already
+        """
+        return self.generate_hash(data) == self.data_hash
+
+    @classmethod
+    def generate_hash(cls,data):
+        """
+        returns the unique id of the passed data
+        """
+
+        # we are going to hash the data to name it, that way repeat
+        # data isn't duplicated. Need to be careful when deleting
+        # data
+        h = md5()
+        h.update(data)
+        unique = h.hexdigest()
+        return unique
+
+
+
+
+
+class S3Data(Data):
+
+    enabled = False
+
+    using_options(inheritance='multi')
+
+    s3_key = Field(UnicodeText)
+
+    repopulate = True
+
+    def set_data(self,data,deep=True):
+
+        # hit the rent up
+        if deep:
+            super(S3Data,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
+
+        cherrypy.log('s3 data set_data')
+
+        if not self.enabled:
+            cherrypy.log('s3 not enabled, skipping')
+            return False
+
+        # upload the data to s3
+        key = self.get_key()
+
+        cherrypy.log('uploading')
+
+        # TODO: pass our computed hashes so it doesnt re-hash
+        # TODO: don't set if they key aleady exists
+        key.set_contents_from_string(data)
+
+        # save it's key
+        self.s3_key = key.key
+
+        return True
+
+    def get_data(self):
+        cherrypy.log('S3data get_data')
+        key = self.get_key()
+        data = key.get_contents_as_string() or None
+        if not data:
+            data = super(S3Data,self).get_data()
+            if data and S3Data.repopulate:
+                S3Data.set_data(self,data,False)
+            return data
+        return data
+
+    def delete(self,deep=True):
+        if deep:
+            super(S3Data,self).delete(deep)
+        key = self.get_key()
+        key.delete()
+        self.s3_key = None
+
+    def get_bucket(self,conn):
+        if not hasattr(self,'s3_bucket') or not self.s3_bucket:
+            self.s3_bucket = Bucket(connection=conn,
+                                    name=cherrypy.config.get('s3_bucket_name'))
+        return self.s3_bucket
+
+    def connect_s3(self):
+        if not hasattr(self,'s3_conn') or not self.s3_conn:
+            self.s3_conn = S3Connection(cherrypy.config.get('s3_key'),
+                                        cherrypy.config.get('s3_secret'))
+        return self.s3_conn
+
+    def get_key(self):
+        conn = self.connect_s3()
+        bucket = self.get_bucket(conn)
+        key = Key(bucket)
+        if self.s3_key:
+            key.key = self.s3_key
+        return key
+
+
+class DriveData(S3Data):
+    """
+    Info on data stored by the DataEnabler
+    """
+
+    using_options(inheritance='multi')
+
+    local_save_path = Field(UnicodeText)
+
+    repopulate = False
+
+    def set_data(self,data,deep=True):
+        """
+        set the file data
+        """
+        # do we want to set deeper?
+        if deep:
+            super(DriveData,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
+
+        cherrypy.log('drive data set_data')
+
+        # now we need to save it to the disk
+        # use it's hash to save it down, that way repeat data
+        # will not be repeated in storage
+        path = os.path.join(cherrypy.config.get('media_root'),
+                            self.data_hash)
+
+        with open(path,'wb') as fh:
+            cherrypy.log('set_data writing: %s' % path)
+            fh.write(data)
+            fh.close()
+            self.local_save_path = path
+
+        return True
+
+    def get_data(self):
+        """
+        return the file data
+        """
+
+        cherrypy.log('drivedata get_data')
+
+        if not self.local_save_path or not os.path.exists(self.local_save_path):
+            cherrypy.log('drivedata path not found')
+
+            # dig deeper
+            data = super(DriveData,self).get_data()
+
+            # someone knew better than me!
+            if data and DriveData.repopulate:
+                DriveData.set_data(self,data,False)
+
+            return data
+
+        cherrypy.log('get_data: %s' % self.local_save_path)
+
+        with open(self.local_save_path,'r') as fh:
+            return fh.read() or None
+
+
+    def delete(self,deep=True):
+        if deep:
+            super(DriveData,self).delete(deep)
+        cherrypy.log('DriveData delete')
+
+        if self.local_save_path and os.path.exists(self.local_save_path):
+            os.unlink(self.local_save_path)
+            self.local_save_path = None
+
+
+class MemcacheData(DriveData):
+
+    repopulate = True
+
+    def set_data(self,data,deep=True):
+        from lib.memcache_client import memcache_client
+
+        # respect ur eldurs
+        if deep:
+            super(MemcacheData,self).set_data(data)
+        else:
+            Data.set_data(self,data,deep)
+
+        cherrypy.log('memcache data set_data: %s' % self.data_hash)
+
+        # we are b64ing the data for consistency
+        memcache_client.set(str(self.data_hash),
+                            b64encode(data))
+
+        return True
+
+    def get_data(self):
+        from lib.memcache_client import memcache_client
+
+        cherrypy.log('memcache data get_data: %s' % self.data_hash)
+
+        # check and see if we have it
+        data = memcache_client.get(str(self.data_hash))
+
+        if not data:
+            cherrypy.log('memcache not found')
+            data = super(MemcacheData,self).get_data()
+            if data and MemcacheData.repopulate:
+                cherrypy.log('memcachedata repopulating')
+                MemcacheData.set_data(self,data,False)
+            return data
+
+        return b64decode(data)
+
+    def delete(self,deep=True):
+        if deep:
+            super(MemcacheData,self).delete(deep)
+        from lib.memcache_client import memcache_client
+        cherrypy.log('memcache delete')
+        memcache_client.delete(self.data_hash)
+
+
+class DataEnabler(BaseEntity):
+    """
+    to be subclassed. facilitates setting / getting obj data.
+    Data can be set or got by label, not name. For example
+    a media obj may have source image as well as thumbnail.
+    you could set the default data as the source image data
+    and than the thumbnail datas as 'thumbnail_[size]' label.
+    """
+
+    datas_info = OneToMany('Data')
+
+    DATA_TYPE = None
+
+    def set_data(self,file_data,label='default'):
+        """
+        sets the obj's data w/ the given label. If it is already
+        set the old data will be lost and the new data will be set
+        """
+        # try and find existing info
+        data = self.find_data(label)
+
+        cherrypy.log('DataEnabler set_data: %s' % label)
+
+        # check and see if the info is for the same data
+        if not data or not data.compare_data(file_data):
+            cherrypy.log('adding data entry')
+
+            # they are not the same data, we need to create
+            # a new info for our data
+            data = self.DATA_TYPE(label=label)
+            data.set_data(file_data)
+            self.datas_info.append(data)
+            session.add(data)
+
+        else:
+            cherrypy.log('skipping set, same data')
+
+        return data
+
+    def get_data(self,label='default'):
+        """
+        gets the obj's data. If no data is found returns None.
+        """
+
+        cherrypy.log('DataEnabler get_data: %s' % label)
+
+        # find the data
+        data = self.find_data(label)
+
+        # if we didn't find it return none
+        if not data:
+            cherrypy.log('DataEnabler did not find data entry')
+            return None
+
+        # return the data
+        _data = data.get_data()
+        if len(_data) != data.size:
+            cherrypy.log('wrong size found: %s %s'
+                         % (len(_data),data.size))
+        return _data
+
+    def find_data(self,label):
+        """
+        returns the Data for this obj by the given label
+        """
+        return self.DATA_TYPE.query.\
+                             filter(self.DATA_TYPE.obj==self).\
+                             filter(self.DATA_TYPE.label==label).\
+                             first()
+
+
 
 class User(BaseEntity):
     using_options(tablename='users')
@@ -131,15 +465,15 @@ class Comment(BaseEntity):
     def __repr__(self):
         return '<Comment "%s" "%s">' % (self.title,self.rating)
 
-class Media(BaseEntity):
+class Media(DataEnabler):
     using_options(tablename='media')
+
+    DATA_TYPE = MemcacheData
 
     title = Field(Unicode(100))
     size = Field(Float)
     type = Field(Unicode(80))
     extension = Field(Unicode(10))
-    media_path = Field(UnicodeText) # local path
-    cdn_media_path = Field(UnicodeText) # fallback path if not found locally
     created_at = Field(DateTime, default=datetime.datetime.now)
 
     comments = OneToMany('Comment')
@@ -149,37 +483,19 @@ class Media(BaseEntity):
 
     add_tag_by_name = add_tag_by_name
 
-    def set_data(self,data):
-        # we are going to update our data file
-        self.size = len(data)
-        cherrypy.log('setting data: %s' % len(data))
-        if not self.media_path:
-            t = NamedTemporaryFile(delete=False,
-                                   dir=cherrypy.config.get('media_root'),
-                                   suffix='.%s'%self.extension,
-                                   prefix='media_')
-            fh = t.file
-            self.media_path = os.path.abspath(t.name)
-        else:
-            fh = file(self.media_path,'wb')
-        cherrypy.log('adding_data: %s' % self.media_path)
-        fh.write(data)
-        fh.close()
+    #def get_data(self,label='default'):
+        # we are going call the helper's get
+        # data that we over rode until we find one
+        # that has our data
 
-        # create a set of thumbnails up front
-        self.create_thumbnail(50)
-        self.create_thumbnail(200)
-        self.create_thumbnail(250)
-        self.create_thumbnail(800)
 
-        return True
+    #def set_data(self,data,label='default'):
 
     def create_thumbnail(self,w,h='',overwrite=False):
-        """ creats a thumbnail of the image @ the given size,
-            writes the thumbnail to the drive w/ size as
-            the prefix """
-
+        cherrypy.log('creating thumbnail')
         if self.is_image():
+
+            # figure out it's dimensions
             w,h = map(str,(w,h))
             if not h:
                 h = w
@@ -187,24 +503,42 @@ class Media(BaseEntity):
                 size = w
             else:
                 size = '%sx%s' % (w,h)
-            file_name = os.path.basename(self.media_path)
-            thumbnail_root = cherrypy.config.get('thumbnail_root')
-            out_path = os.path.join(thumbnail_root,
-                                    '%s_%s' % (size,file_name))
-            out_path = os.path.abspath(out_path)
-            media_path = os.path.abspath(self.media_path)
-            if os.path.exists(out_path) and not overwrite:
-                cherrypy.log('thumbnail exists')
-                return out_path
 
-            cmd = ['convert','-thumbnail',size,self.media_path,out_path]
-            cherrypy.log('cmd: %s' % cmd)
-            r = call(cmd) # TODO check return code
-            cherrypy.log('r: %s' % r)
-            cherrypy.log('out path: %s' % out_path)
-            return out_path
+            size_tuple = int(w), int(h) if h else None
 
-        return None
+            cherrypy.log('creating thumbnail: %s:%s' % size_tuple)
+
+            # label pattern for retrieving the data
+            data_label = 'thumbnail_%s' % size
+
+            # try and get the data
+            data = self.get_data(data_label)
+
+            if data:
+                # easy peasy
+                return data
+
+            cherrypy.log('thumnail does not exist')
+
+            # woops didn't find the data for the thumbnail, we'll gen one
+            source_data = self.get_data()
+            if not source_data:
+                raise e.ValidationException('Data for media not found')
+
+            # create our thumbnail
+            data_buffer = StringIO(source_data)
+            image = Image.open(data_buffer)
+            image.thumbnail(size_tuple, Image.ANTIALIAS)
+            data_buffer.close()
+            out_buffer = StringIO()
+            image.save(out_buffer, format='JPEG')
+            thumbnail_data = out_buffer.getvalue()
+            out_buffer.close()
+
+            # save it's data for later
+            self.set_data(thumbnail_data,data_label)
+
+            return thumbnail_data
 
     @classmethod
     def get_random_path(cls):

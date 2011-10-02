@@ -6,12 +6,16 @@ import logging as log
 import models as m
 import controllers as c
 
-def setup():
-    # setup the db connection
-    m.setup()
+def setup(config='./cherryconfig.ini'):
 
     # create our app from root
-    app = cherrypy.Application(c.Root(), config='./cherryconfig.ini')
+    app = cherrypy.Application(c.Root(),config=config)
+
+    # update our config
+    cherrypy.config.update(config)
+
+    # setup the db connection
+    m.setup()
 
     # setup a tool to rset our db session
     cherrypy.tools.reset_db = cherrypy.Tool('on_end_resource',
